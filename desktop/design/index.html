@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>docu.md · 正式产品界面设计 R0.1</title>
+  <link rel="stylesheet" href="design.css">
+</head>
+<body>
+  <div class="review-bar" aria-label="设计评审工具">
+    <div><strong>界面设计 R0.1</strong><span class="review-note">示例数据 · 操作仅作交互演示</span></div>
+    <label>审阅场景 <select id="review-scene"><option value="reading">日常阅读</option><option value="editing">分栏编辑</option><option value="search">全文检索</option><option value="annotations">文档批注</option><option value="conflict">外部修改冲突</option><option value="empty">首次打开</option></select></label>
+  </div>
+  <div id="app" data-mode="reading" data-theme="light">
+    <header class="app-header">
+      <button class="brand" data-action="welcome" aria-label="docu.md 开始页"><span class="brand-mark">d.</span><span>docu<span class="brand-dot">.</span>md</span></button>
+      <nav class="app-menus" aria-label="应用菜单"><button data-menu="file">文件</button><button data-menu="view">视图</button><button data-menu="help">帮助</button></nav>
+      <button class="quick-open" data-action="quick-open"><span data-icon="search"></span><span>搜索文件或命令</span><kbd>Ctrl K</kbd></button>
+      <div class="header-actions"><span class="local-label"><span class="status-dot"></span>本地工作区</span><button class="icon-button" data-action="appearance" aria-label="切换浅色或深色外观" title="切换浅色或深色外观"><span data-icon="sun"></span></button><button class="icon-button" data-action="settings" aria-label="打开设置" title="设置"><span data-icon="settings"></span></button></div>
+    </header>
+    <div class="app-body">
+      <nav class="activity-bar" aria-label="主要导航">
+        <button class="activity active" data-nav="files" aria-label="文件" aria-pressed="true" title="文件"><span data-icon="folder"></span></button>
+        <button class="activity" data-nav="search" aria-label="工作区检索" aria-pressed="false" title="工作区检索 · Ctrl Shift F"><span data-icon="search"></span></button>
+        <button class="activity" data-nav="recent" aria-label="最近打开" aria-pressed="false" title="最近打开"><span data-icon="clock"></span></button>
+        <div class="activity-bottom"><button class="activity" data-action="tasks" aria-label="导出任务" title="导出任务"><span data-icon="download"></span></button><button class="activity" data-action="shortcuts" aria-label="快捷键" title="快捷键"><span data-icon="keyboard"></span></button></div>
+      </nav>
+      <aside class="sidebar" aria-label="文件导航">
+        <div class="sidebar-top"><strong id="sidebar-title">工作区</strong><button class="icon-button" data-action="toggle-sidebar" aria-label="收起文件侧栏" title="收起 · Ctrl B"><span data-icon="panel-left"></span></button></div>
+        <section id="files-panel" class="side-view">
+          <div class="workspace-picker"><span data-icon="folder"></span><strong>个人文档</strong><button class="icon-button" data-menu="workspace" aria-label="工作区操作" title="工作区操作"><span data-icon="more"></span></button></div>
+          <div class="tree-tools"><button class="subtle-button" data-action="new"><span data-icon="file-plus"></span>新建</button><button class="subtle-button" data-action="open-folder"><span data-icon="folder-plus"></span>打开文件夹</button></div>
+          <div class="file-tree" id="file-tree">
+            <details open><summary>项目文档 <span>4</span></summary><div class="tree-children">
+              <button class="file-row selected" data-file="guide"><span class="file-type">M</span><span>项目说明.md</span></button>
+              <button class="file-row" data-file="notes"><span class="file-type">M</span><span>设计笔记.md</span></button>
+              <button class="file-row" data-file="diagram"><span class="file-type">◇</span><span>工作流程.mermaid</span></button>
+              <button class="file-row" data-file="slides"><span class="file-type">▱</span><span>项目演示.slides.md</span></button>
+            </div></details>
+            <details><summary>参考资料 <span>3</span></summary><div class="tree-children"><button class="file-row" data-file="html"><span class="file-type">&lt;&gt;</span><span>参考页面.html</span></button><button class="file-row" data-file="image"><span class="file-type">▧</span><span>示意图.svg</span></button><button class="file-row" data-file="code"><span class="file-type">{ }</span><span>配置示例.json</span></button></div></details>
+            <button class="file-row root-file" data-file="summary"><span class="file-type">M</span><span>SUMMARY.md</span></button>
+          </div>
+          <div class="sidebar-bottom"><span data-icon="hard-drive"></span><span>文档 / 个人文档</span><button class="icon-button" data-action="locate" aria-label="定位当前文件" title="定位当前文件"><span data-icon="locate"></span></button></div>
+        </section>
+        <section id="search-panel" class="side-view" hidden>
+          <label class="search-box"><span data-icon="search"></span><input id="search-input" aria-label="检索关键字" placeholder="搜索此工作区" value="导出"></label>
+          <div class="search-options"><label><select id="search-mode" aria-label="检索范围"><option value="content">正文</option><option value="filename">文件名</option></select></label><button class="subtle-button" id="search-start">检索</button><button class="subtle-button" id="search-cancel" hidden>取消</button></div>
+          <p id="search-status" class="side-caption" aria-live="polite">输入关键字，按 Enter 开始</p><div id="search-results"></div>
+        </section>
+        <section id="recent-panel" class="side-view" hidden><p class="side-caption">今天</p><div id="recent-files"></div><button class="subtle-button recent-clear" data-action="clear-recent">清空最近记录</button></section>
+      </aside>
+      <main class="document-shell" aria-label="文档工作台">
+        <nav id="tabs" class="tabs" role="tablist" aria-label="已打开文档"></nav>
+        <div class="document-toolbar" id="document-toolbar">
+          <div class="toolbar-left"><button class="icon-button sidebar-opener" data-action="toggle-sidebar" aria-label="展开文件侧栏" title="文件侧栏"><span data-icon="panel-left"></span></button><div class="mode-switch" role="group" aria-label="文档模式"><button data-mode="reading" aria-pressed="true">阅读</button><button data-mode="split" aria-pressed="false">分栏</button><button data-mode="source" aria-pressed="false">源码</button></div><span class="toolbar-divider"></span><button id="save-button" class="subtle-button" data-action="save" hidden><span data-icon="save"></span>保存</button><span id="document-location" class="document-location">项目文档</span></div>
+          <div class="toolbar-right"><button class="icon-button" data-action="focus" aria-label="切换专注阅读" title="专注阅读 · Ctrl Shift Enter"><span data-icon="expand"></span></button><button class="icon-button" data-action="document-style" aria-label="文档外观" title="文档外观"><span data-icon="type"></span></button><button class="subtle-button annotation-trigger" data-action="annotations"><span data-icon="comment"></span><span>批注</span><span class="count">2</span></button><button class="icon-button" data-action="outline" aria-label="显示或隐藏文档目录" title="文档目录"><span data-icon="list"></span></button><button class="primary-button export-trigger" data-action="export"><span data-icon="download"></span><span>导出</span></button><button class="icon-button overflow-trigger" data-menu="document" aria-label="更多文档操作" title="更多操作"><span data-icon="more"></span></button></div>
+        </div>
+        <div id="conflict-banner" class="conflict-banner" role="status" hidden><span data-icon="alert"></span><div><strong>文件已被外部程序修改</strong><span>当前编辑稿已保留。请对比后决定如何处理。</span></div><button class="subtle-button" data-action="compare">对比差异</button><button class="secondary-button" data-action="save-copy">另存副本</button></div>
+        <div class="document-content">
+          <section id="editor-pane" class="editor-pane" aria-label="Markdown 源码编辑" hidden><div class="pane-heading"><span>Markdown</span><span>可编辑 · UTF-8</span></div><div class="editor-grid"><pre id="line-numbers" aria-hidden="true"></pre><textarea id="source-editor" aria-label="Markdown 源码" spellcheck="false"></textarea></div><div class="editor-find" id="editor-find" hidden><label><span class="sr-only">查找文本</span><input id="find-text" placeholder="查找文本"></label><label><span class="sr-only">替换为</span><input id="replace-text" placeholder="替换为"></label><button class="subtle-button" data-action="replace">替换</button><button class="icon-button" data-action="close-find" aria-label="关闭查找"><span data-icon="close"></span></button></div></section>
+          <section id="reader" class="reader" aria-label="文档阅读区" tabindex="0"><article id="document-article" class="document-article" role="tabpanel" aria-labelledby="tab-guide"></article></section>
+          <aside id="inspector" class="inspector" aria-label="文档目录与批注"><div class="inspector-tabs" role="tablist" aria-label="辅助面板"><button role="tab" id="outline-tab" aria-controls="outline-panel" aria-selected="true">目录</button><button role="tab" id="annotations-tab" aria-controls="annotations-panel" aria-selected="false" tabindex="-1">批注 <span class="count">2</span></button><button class="icon-button inspector-close" data-action="close-inspector" aria-label="关闭辅助面板"><span data-icon="close"></span></button></div><section id="outline-panel" role="tabpanel" aria-labelledby="outline-tab"><p class="side-caption">本文内容</p><nav id="outline-items" aria-label="文档标题"></nav><div class="reading-info"><span>约 3 分钟读完</span><span id="reading-progress">0%</span><progress id="reading-progress-bar" max="100" value="0" aria-label="阅读进度"></progress></div></section><section id="annotations-panel" role="tabpanel" aria-labelledby="annotations-tab" hidden><div class="annotation-top"><span id="annotation-total">2 条批注</span><button class="subtle-button" data-action="add-annotation">添加</button><button class="icon-button" data-menu="annotations" aria-label="批注管理"><span data-icon="more"></span></button></div><div id="annotation-list"></div></section></aside>
+        </div>
+      </main>
+    </div>
+    <footer class="status-bar"><div><span class="status-dot" id="save-dot"></span><span id="save-status" aria-live="polite">已保存</span><span class="status-separator"></span><span id="document-stats">986 字</span></div><div><button id="task-status" data-action="tasks" hidden>导出任务</button><button id="auto-refresh" data-action="refresh-toggle" aria-pressed="true">自动刷新</button><span class="status-meta">UTF-8 · LF</span><button data-action="document-style" id="zoom-value">100%</button></div></footer>
+  </div>
+  <div id="popover" class="popover" hidden></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="modal" aria-labelledby="modal-title"><div id="modal-body"></div></dialog>
+  <script src="design.js"></script>
+</body>
+</html>

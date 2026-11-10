@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-personal-desktop",
+  "excluded": [
+    "F11",
+    "F13",
+    "F18",
+    "F24",
+    "F26",
+    "F29",
+    "F30"
+  ],
+  "features": [
+    {
+      "id": "F01",
+      "name": "本地文件打开、原文保存；`formats.json`、Viewer 导出入口",
+      "acceptance": "打开文件/多选、拖放、文件关联打开、另存原文；支持中文/空格；取消与失败不破坏当前会话",
+      "phases": [
+        "P2"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_04.zh-CN.md",
+        "desktop/test/workspace-e2e.test.js",
+        "desktop/test/workspaces.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_02.zh-CN.md",
+        "desktop/test/editor-recovery-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_04.zh-CN.md",
+        "desktop/test/open-entry-e2e.test.js",
+        "desktop/test/open-inbox.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/test/tab-context-menu-e2e.test.js",
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+      ]
+    },
+    {
+      "id": "F02",
+      "name": "工作区目录、文件树；`chrome/src/workspace/workspace.ts`",
+      "acceptance": "打开文件夹、懒加载目录、定位当前文件、目录刷新；支持已有工作区文件类型及未知二进制提示",
+      "phases": [
+        "P2"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/BATCH_04.zh-CN.md",
+        "desktop/test/workspace-e2e.test.js",
+        "desktop/test/workspaces.test.js",
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_04.zh-CN.md",
+        "desktop/test/open-entry-e2e.test.js",
+        "desktop/test/open-inbox.test.js"
+      ]
+    },
+    {
+      "id": "F03",
+      "name": "文件名/全文搜索、行定位、前进后退",
+      "acceptance": "可取消检索、结果片段/行号、跳转及历史；不因大目录扫描卡住界面",
+      "phases": [
+        "P2"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_03.zh-CN.md",
+        "desktop/test/live-preview-e2e.test.js",
+        "desktop/ALPHA_06.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/local-navigation.test.js",
+        "desktop/ALPHA_07.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/book-tree.test.js"
+      ]
+    },
+    {
+      "id": "F04",
+      "name": "历史、阅读状态与自动刷新；Popup、FileStateService、file-change-tracker",
+      "acceptance": "最近本地文件/工作区、滚动位置、布局和模式恢复；文件更新自动刷新并能暂停；历史条目可清理",
+      "phases": [
+        "P2"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/BATCH_03.zh-CN.md",
+        "desktop/test/e2e.test.js",
+        "desktop/test/platform-services.test.js",
+        "desktop/BATCH_04.zh-CN.md",
+        "desktop/test/workspace-e2e.test.js",
+        "desktop/test/workspaces.test.js",
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_02.zh-CN.md",
+        "desktop/test/editor-recovery-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_06.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/local-navigation.test.js"
+      ]
+    },
+    {
+      "id": "F05",
+      "name": "Markdown/GFM、数学、脚注、警告块等；`src/core/markdown-processor.ts`",
+      "acceptance": "对现有 Markdown/编码夹具逐项对齐；含中英文、表格、任务列表、Emoji、HTML 表格、内联 HTML、代码、脚注",
+      "phases": [
+        "P3"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/test/table-overflow-e2e.test.js",
+        "desktop/TABLE_OVERFLOW_FIX.zh-CN.md",
+        "desktop/TABLE_WIDTH_FIT.zh-CN.md",
+        "desktop/test/review-table-width-e2e.test.js",
+        "desktop/REVIEW_DOCUMENT_WIDTH.zh-CN.md"
+      ]
+    },
+    {
+      "id": "F06",
+      "name": "主题、字体、代码主题、版式；`src/themes/`",
+      "acceptance": "覆盖所有登记主题/组合、字体与样式资源；首行缩进、表格/图片/图表对齐、合并空单元格、Frontmatter 等可配置并持久化",
+      "phases": [
+        "P3"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/test/table-overflow-e2e.test.js",
+        "desktop/TABLE_OVERFLOW_FIX.zh-CN.md",
+        "desktop/TABLE_WIDTH_FIT.zh-CN.md",
+        "desktop/test/review-table-width-e2e.test.js",
+        "desktop/REVIEW_DOCUMENT_WIDTH.zh-CN.md",
+        "desktop/test/reading-font-diagram-e2e.test.js",
+        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md"
+      ]
+    },
+    {
+      "id": "F07",
+      "name": "目录、缩放、布局、源码/阅读切换；Viewer Session、source-view",
+      "acceptance": "普通/宽屏/窄栏、全屏、TOC、标题锚点、独立滚动与行号；源码模式下导出仍使用正确内容",
+      "phases": [
+        "P3"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_02.zh-CN.md",
+        "desktop/test/editor-recovery-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_03.zh-CN.md",
+        "desktop/test/live-preview-e2e.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/test/review-table-width-e2e.test.js",
+        "desktop/REVIEW_DOCUMENT_WIDTH.zh-CN.md",
+        "desktop/test/scroll-performance-e2e.test.js",
+        "desktop/SCROLL_PERFORMANCE.zh-CN.md",
+        "desktop/test/reading-font-diagram-e2e.test.js",
+        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
+        "desktop/test/tab-context-menu-e2e.test.js",
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+      ]
+    },
+    {
+      "id": "F08",
+      "name": "编辑器侧预览与滚动同步；VS Code 宿主、line-based-scroll",
+      "acceptance": "桌面内基础文本编辑、查找替换、撤销、保存、分栏预览、双向定位；外部编辑器修改可同步；保护未保存内容",
+      "phases": [
+        "P2",
+        "P3"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_02.zh-CN.md",
+        "desktop/test/editor-recovery-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_03.zh-CN.md",
+        "desktop/test/live-preview-e2e.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js"
+      ]
+    },
+    {
+      "id": "F09",
+      "name": "Mermaid、PlantUML、Vega/Vega-Lite、DOT、Infographic、Canvas、drawio、ECharts；`formats.json`、`src/renderers/`",
+      "acceptance": "每种引擎覆盖独立文件和 Markdown 代码块；SVG/HTML 内容按当前注册能力处理；测试正确、错误和资源引用输入",
+      "phases": [
+        "P4"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_02.zh-CN.md",
+        "desktop/test/window-worker.test.js"
+      ]
+    },
+    {
+      "id": "F10",
+      "name": "Slidev；`src/slidev/`、`slidev-shell/`",
+      "acceptance": "`.slides.md`、现有主题、演示/列表模式、翻页、全屏、图表；打包全部 shell/chunk/theme 资源；验证实际导出路径",
+      "phases": [
+        "P4"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F12",
+      "name": "本地 HTML 文件预览与一般文本/代码/图片文件；workspace HTML sandbox",
+      "acceptance": "保留隔离 HTML 预览、文本/代码高亮、图片显示和不支持类型提示；切换 HTML/Markdown/代码时状态正确；外部资源阻断",
+      "phases": [
+        "P3",
+        "P4"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F14",
+      "name": "图片/图表放大、拖拽、缩放、代码复制；`src/ui/diagram-lightbox.ts` 等",
+      "acceptance": "现有交互在桌面可用，Esc/键盘/高 DPI 正常，不把控制按钮导出到文件",
+      "phases": [
+        "P3",
+        "P5"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/reading-font-diagram-e2e.test.js",
+        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md"
+      ]
+    },
+    {
+      "id": "F15",
+      "name": "批注；`src/ui/remark-mode.ts`、remark-utils、Popup",
+      "acceptance": "选择文本、四色、背景/下划线/波浪线/边框、备注、侧栏、悬浮提示、删除/撤销、配置、持久化、结构化复制、原格式导入/导出/合并、复制后关闭当前文档",
+      "phases": [
+        "P3"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F16",
+      "name": "DOCX；`src/exporters/docx-*`",
+      "acceptance": "保留可编辑 OMML、表格及合并、代码样式、图像、脚注、主题、分页/分隔线与 Emoji 设置；自动检查 OOXML，并人工用实际使用的 Word/WPS 打开",
+      "phases": [
+        "P5"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_02.zh-CN.md",
+        "desktop/test/window-worker.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js"
+      ]
+    },
+    {
+      "id": "F17",
+      "name": "单文件 HTML；`src/exporters/html-exporter.ts`",
+      "acceptance": "正确嵌入样式、图片、字体/公式所需资源；离线重新打开；无意外 CDN 依赖或源码面板/工具栏混入",
+      "phases": [
+        "P5"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F19",
+      "name": "单文档 PDF；print-utils、Chromium PDF 排版",
+      "acceptance": "保存 PDF 文件；纸张、边距、分页、长表、图表不裁切；独立 PDF 导出页面不改变前台阅读状态；无系统打印菜单",
+      "phases": [
+        "P5"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_02.zh-CN.md",
+        "desktop/test/window-worker.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js"
+      ]
+    },
+    {
+      "id": "F20",
+      "name": "GitBook/SUMMARY 目录阅读；gitbook-panel",
+      "acceptance": "本地嵌套目录、章节切换、跨文档锚点/本地资源、标题条目；导出只针对当前文档，不合并整书",
+      "phases": [
+        "P2",
+        "P3"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/ALPHA_06.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/local-navigation.test.js",
+        "desktop/ALPHA_07.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/book-tree.test.js"
+      ]
+    },
+    {
+      "id": "F21",
+      "name": "图像/图表上下文菜单；image-context-menu、diagram-export-registry",
+      "acceptance": "保存/复制 PNG；引擎有原生 SVG 或 DrawIO XML 时才显示对应导出；普通图片保持原有菜单语义；不把位图伪装为矢量图",
+      "phases": [
+        "P5"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F22",
+      "name": "表格复制与 XLSX；table-context-menu、table-xlsx",
+      "acceptance": "HTML+TSV 剪贴板矩形网格、真实 XLSX、真实合并区域与基本样式；在实际 Excel/WPS 粘贴、打开校验",
+      "phases": [
+        "P5"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F23",
+      "name": "GUI 资产导出与文档 PNG；复用现有资产提取逻辑",
+      "acceptance": "界面提供整页 PNG、全部/按序号/按种类导出当前文档图片和图表；保留错误条目及源行；不提供 CLI 入口",
+      "phases": [
+        "P5"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F25",
+      "name": "本地/粘贴 HTML 转 Markdown；复用 Readability+Turndown",
+      "acceptance": "提取本地 HTML 文件或粘贴 HTML 的正文/回退；本地基址正确，结果可保存和单文档导出；无 URL 读取，不下载远程图片",
+      "phases": [
+        "P4"
+      ],
+      "status": "not-started",
+      "evidence": []
+    },
+    {
+      "id": "F27",
+      "name": "配置、语言、缓存、历史管理；SettingsService、settings-schema、Popup",
+      "acceptance": "覆盖共享 schema 全部设置，另外审计不在 schema 内的批注/缓存/刷新配置；所有已登记 UI 语言可加载；缓存统计/上限/清理/失效正确",
+      "phases": [
+        "P1",
+        "P3"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_03.zh-CN.md",
+        "desktop/test/platform-services.test.js",
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_03.zh-CN.md",
+        "desktop/test/live-preview-e2e.test.js"
+      ]
+    },
+    {
+      "id": "F28",
+      "name": "本地资源、字体、编码恢复；DocumentService、encoding-recovery、resource-embedder",
+      "acceptance": "本机盘符、长路径、BOM、当前编码恢复夹具、百分号、`#`、空格、中文、SVG/相对引用；可授权额外本机资源目录；不访问网络盘",
+      "phases": [
+        "P1",
+        "P2",
+        "P4"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_02.zh-CN.md",
+        "desktop/test/window-worker.test.js",
+        "desktop/BATCH_03.zh-CN.md",
+        "desktop/test/platform-services.test.js",
+        "desktop/BATCH_04.zh-CN.md",
+        "desktop/test/workspace-e2e.test.js",
+        "desktop/test/workspaces.test.js",
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_04.zh-CN.md",
+        "desktop/test/open-entry-e2e.test.js",
+        "desktop/test/open-inbox.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_06.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/local-navigation.test.js",
+        "desktop/ALPHA_07.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/book-tree.test.js"
+      ]
+    },
+    {
+      "id": "F31",
+      "name": "开发与共享契约；`TESTING.md`、test/suites",
+      "acceptance": "仅在公共核心被修改时执行受影响原平台回归；保留功能 → 桌面入口 → 自动测试 → 人工证据可追溯；不增加宿主互通功能",
+      "phases": [
+        "P0",
+        "P6"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_02.zh-CN.md",
+        "desktop/test/window-worker.test.js",
+        "desktop/BATCH_03.zh-CN.md",
+        "desktop/test/platform-services.test.js",
+        "desktop/BATCH_04.zh-CN.md",
+        "desktop/test/workspace-e2e.test.js",
+        "desktop/test/workspaces.test.js",
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_02.zh-CN.md",
+        "desktop/test/editor-recovery-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_03.zh-CN.md",
+        "desktop/test/live-preview-e2e.test.js",
+        "desktop/ALPHA_04.zh-CN.md",
+        "desktop/test/open-entry-e2e.test.js",
+        "desktop/test/open-inbox.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_06.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/local-navigation.test.js",
+        "desktop/ALPHA_07.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/book-tree.test.js",
+        "desktop/test/scroll-performance-e2e.test.js",
+        "desktop/SCROLL_PERFORMANCE.zh-CN.md",
+        "desktop/test/reading-font-diagram-e2e.test.js",
+        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
+        "desktop/test/tab-context-menu-e2e.test.js",
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+      ]
+    },
+    {
+      "id": "F32",
+      "name": "桌面运行所需完整性（新增）",
+      "acceptance": "标签页、窗口/会话恢复、菜单快捷键、单实例接收文件、系统主题、高 DPI、任务取消/错误恢复、个人数据备份与手动升级",
+      "phases": [
+        "P1",
+        "P2",
+        "P6"
+      ],
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/e2e.test.js",
+        "desktop/BATCH_01.zh-CN.md",
+        "desktop/BATCH_02.zh-CN.md",
+        "desktop/test/window-worker.test.js",
+        "desktop/BATCH_03.zh-CN.md",
+        "desktop/test/platform-services.test.js",
+        "desktop/BATCH_04.zh-CN.md",
+        "desktop/test/workspace-e2e.test.js",
+        "desktop/test/workspaces.test.js",
+        "desktop/BATCH_05.zh-CN.md",
+        "desktop/test/navigation-search-e2e.test.js",
+        "desktop/test/navigation-search.test.js",
+        "desktop/BATCH_06.zh-CN.md",
+        "desktop/test/editing-e2e.test.js",
+        "desktop/test/document-files.test.js",
+        "desktop/ALPHA_01.zh-CN.md",
+        "desktop/test/shell-e2e.test.js",
+        "desktop/test/profile-migration.test.js",
+        "desktop/ALPHA_02.zh-CN.md",
+        "desktop/test/editor-recovery-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_03.zh-CN.md",
+        "desktop/test/live-preview-e2e.test.js",
+        "desktop/ALPHA_04.zh-CN.md",
+        "desktop/test/open-entry-e2e.test.js",
+        "desktop/test/open-inbox.test.js",
+        "desktop/ALPHA_05.zh-CN.md",
+        "desktop/test/untitled-e2e.test.js",
+        "desktop/test/draft-store.test.js",
+        "desktop/ALPHA_06.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/local-navigation.test.js",
+        "desktop/ALPHA_07.zh-CN.md",
+        "desktop/test/reading-navigation-e2e.test.js",
+        "desktop/test/book-tree.test.js",
+        "desktop/test/scroll-performance-e2e.test.js",
+        "desktop/SCROLL_PERFORMANCE.zh-CN.md",
+        "desktop/test/reading-font-diagram-e2e.test.js",
+        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
+        "desktop/test/tab-context-menu-e2e.test.js",
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+      ]
+    }
+  ]
+}

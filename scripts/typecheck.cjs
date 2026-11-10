@@ -16,12 +16,18 @@ const { spawnSync } = require('node:child_process');
 const { resolve } = require('node:path');
 const { readFileSync } = require('node:fs');
 
-const tscBin = resolve(__dirname, '../node_modules/.bin/tsc');
+const tscBin = require.resolve('typescript/bin/tsc');
 const pkg = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf8'));
 
-const run = spawnSync(tscBin, ['--noEmit', '--pretty', 'false'], {
+const run = spawnSync(process.execPath, [tscBin, '--noEmit', '--pretty', 'false'], {
   encoding: 'utf8',
+  maxBuffer: 16 * 1024 * 1024,
 });
+
+if (run.error || run.signal || run.status === null) {
+  console.error('TypeScript could not complete:', run.error || run.signal || 'unknown process failure');
+  process.exit(1);
+}
 
 const output = `${run.stdout || ''}${run.stderr || ''}`;
 const lines = output.split('\n');
@@ -30,7 +36,7 @@ const lines = output.split('\n');
 // (TS also emits bare "error TS…" continuation lines for multi-line messages
 // under --pretty false only for lib errors; treat non-file lines as context.)
 const ERROR_LINE = /^([^( ]+)\((\d+),(\d+)\): error (TS\d+):/;
-const VENDOR_PREFIX = /^node_modules\//;
+const VENDOR_PREFIX = /^node_modules[\\/]/;
 
 const own = [];
 const vendor = new Map(); // file -> count
@@ -54,12 +60,17 @@ for (const line of lines) {
 
 const vendorTotal = [...vendor.values()].reduce((sum, n) => sum + n, 0);
 
-if (own.length > 0) {
+if (own.length > 0 || unknown > 0) {
   console.error(`TypeScript found ${own.length} error(s) in project sources:\n`);
   for (const err of own) {
     console.error(`  ${err}`);
   }
   console.error(`\n(${vendorTotal} additional error(s) inside node_modules vendor packages, not counted)`);
+  process.exit(1);
+}
+
+if (run.status !== 0 && vendorTotal === 0) {
+  console.error(output || `TypeScript exited with status ${run.status}`);
   process.exit(1);
 }
 

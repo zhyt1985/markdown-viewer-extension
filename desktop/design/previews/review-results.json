@@ -1,0 +1,36 @@
+{
+  "revision": "R0.1",
+  "date": "2026-11-05",
+  "scope": "design mockup only; no native document IO",
+  "testedWindowSizes": [
+    "1440x900",
+    "1280x800",
+    "1024x768",
+    "960x640",
+    "640x720",
+    "360x720",
+    "1280x800 at 200% zoom"
+  ],
+  "pageErrors": [],
+  "contrastChecks": [
+    {
+      "appearance": "light with warm document",
+      "ratios": [
+        5.016850627077692,
+        5.761221110957899,
+        10.142670502726643
+      ]
+    },
+    {
+      "appearance": "dark",
+      "ratios": [
+        7.379514878265396,
+        7.905068398380454,
+        11.518373268845364
+      ]
+    }
+  ],
+  "checksPassed": 9,
+  "checksExpected": 9,
+  "status": "automated design checks passed; human review pending"
+}

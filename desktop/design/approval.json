@@ -1,0 +1,12 @@
+{
+  "designVersion": "1.0",
+  "reviewedRevision": "R0.1",
+  "status": "approved",
+  "approvalDate": "2026-11-05",
+  "approvalSource": "User message: 设计评审通过",
+  "files": {
+    "index.html": "4915d73990cf2b4a8fe030b57c0a24170cc70e7ed879d386403074282e6b5750",
+    "design.css": "9f7e026f054aaec027c46469f1141454b08df42817180faff8488e12e0b36340",
+    "design.js": "9a1a1fb86d555826e6edaa3322a489b4bb6a36b6bae8a088ddcf880917caaa57"
+  }
+}

@@ -157,7 +157,7 @@ export function createBlockquoteConverter({ themeStyles, convertInlineNodes, con
       ? blendAlertBackground(alertColor, themeStyles.pageBackground)
       : undefined;
 
-    const cellChildren: FileChild[] = [];
+    const cellChildren: (Paragraph | Table)[] = [];
 
     for (let i = 0; i < node.children.length; i++) {
       const child = node.children[i];
@@ -173,8 +173,12 @@ export function createBlockquoteConverter({ themeStyles, convertInlineNodes, con
         const converted = await convertChildNode(child, nestLevel + 1);
         if (converted) {
           if (Array.isArray(converted)) {
-            cellChildren.push(...converted);
+            for (const item of converted) {
+              if (!(item instanceof Paragraph || item instanceof Table)) throw new Error('Unsupported blockquote cell child');
+              cellChildren.push(item);
+            }
           } else {
+            if (!(converted instanceof Paragraph || converted instanceof Table)) throw new Error('Unsupported blockquote cell child');
             cellChildren.push(converted);
           }
         }

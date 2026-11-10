@@ -3,14 +3,14 @@
  * Converts LaTeX math expressions to DOCX-compatible OMML format
  */
 
-import { convertToXmlComponent, XmlComponent } from 'docx';
-import { mathjax } from 'mathjax-full/js/mathjax';
-import { TeX } from 'mathjax-full/js/input/tex';
-import { AllPackages } from 'mathjax-full/js/input/tex/AllPackages';
-import { liteAdaptor } from 'mathjax-full/js/adaptors/liteAdaptor';
-import { RegisterHTMLHandler } from 'mathjax-full/js/handlers/html';
-import { SerializedMmlVisitor } from 'mathjax-full/js/core/MmlTree/SerializedMmlVisitor';
-import { STATE } from 'mathjax-full/js/core/MathItem';
+import { convertToXmlComponent, XmlComponent, type Math as DocxMath } from 'docx';
+import { mathjax } from 'mathjax-full/js/mathjax.js';
+import { TeX } from 'mathjax-full/js/input/tex.js';
+import { AllPackages } from 'mathjax-full/js/input/tex/AllPackages.js';
+import { liteAdaptor } from 'mathjax-full/js/adaptors/liteAdaptor.js';
+import { RegisterHTMLHandler } from 'mathjax-full/js/handlers/html.js';
+import { SerializedMmlVisitor } from 'mathjax-full/js/core/MmlTree/SerializedMmlVisitor.js';
+import { STATE } from 'mathjax-full/js/core/MathItem.js';
 import { mml2omml } from './mml2omml';
 import { xml2js } from 'xml-js';
 import type { Element as XmlElement } from 'xml-js';
@@ -71,7 +71,9 @@ export function convertMathMl2Omml(mathMlString: string): string {
   return mml2omml(mathMlString, { disableDecode: true });
 }
 
-function convertOmml2Math(ommlString: string): XmlComponent {
+type ImportedMath = XmlComponent & DocxMath;
+
+function convertOmml2Math(ommlString: string): ImportedMath {
   const parsed = xml2js(ommlString, {
     compact: false,
     ignoreDeclaration: true,
@@ -96,10 +98,12 @@ function convertOmml2Math(ommlString: string): XmlComponent {
     throw new Error('Failed to convert OMML element');
   }
 
-  return component;
+  // docx's generic XML importer cannot express the validated m:oMath subtype.
+  // Keep the imported tree intact (including attributes); it is a math paragraph child.
+  return component as unknown as ImportedMath;
 }
 
-function convertMathMl2Math(mathMlString: string): XmlComponent {
+function convertMathMl2Math(mathMlString: string): ImportedMath {
   const ommlString = convertMathMl2Omml(mathMlString);
   return convertOmml2Math(ommlString);
 }
@@ -159,7 +163,7 @@ function latex2MathMl(latexString: string): string {
   return visitor.visitTree(mathNode as any);
 }
 
-export function convertLatex2Math(latexString: string): XmlComponent {
+export function convertLatex2Math(latexString: string): ImportedMath {
   const mathMlString = latex2MathMl(latexString);
   return convertMathMl2Math(mathMlString);
 }

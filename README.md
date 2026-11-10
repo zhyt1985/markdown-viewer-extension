@@ -16,6 +16,7 @@ It is built for technical documentation, engineering notes, research drafts, wee
 - **Obsidian:** https://community.obsidian.md/plugins/markdown-viewer-extension
 - **VS Code:** https://marketplace.visualstudio.com/items?itemName=xicilion.markdown-viewer-extension · https://open-vsx.org/extension/xicilion/markdown-viewer-extension
 - **Mobile:** See the [mobile app docs](https://github.com/markdown-viewer/docs/blob/main/platforms/mobile.md)
+- **Desktop (Windows, in development):** See [product design, build, and validation notes](desktop/README.md).
 
 ## Node.js HTML CLI
 
