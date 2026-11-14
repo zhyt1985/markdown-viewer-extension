@@ -1,3 +1,13 @@
+import { _electron } from 'playwright-core';
+
+export function launchDesktop(options) {
+  const args = options.args ?? [];
+  return _electron.launch({
+    ...options,
+    args: args.some(arg => arg.startsWith('--lang=')) ? args : ['--lang=zh-CN', ...args],
+  });
+}
+
 // Drive the real shell, including menus/dialogs, rather than bypassing UI actions.
 export async function closeDialogs(page) {
   while (await page.locator('dialog[open]').count()) {

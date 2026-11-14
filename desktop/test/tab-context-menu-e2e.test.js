@@ -4,8 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile} from './ui-helpers.js';
+import { launchDesktop,openFile} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),require=createRequire(new URL('../package.json',import.meta.url));
 test('tab context menus close the clicked document or the confirmed group without losing canceled drafts',{timeout:150000},async t=>{
   const artifacts=path.join(root,'test-results/desktop',process.env.MV_DESKTOP_EXECUTABLE?'packaged':'development','tab-context-menu');await fs.mkdir(artifacts,{recursive:true});
@@ -13,7 +12,7 @@ test('tab context menus close the clicked document or the confirmed group withou
   const files=['A','B','C'].map(name=>path.join(folder,name+'.md')),contents=['A','B','C'].map(name=>`# ${name}\n\n`+Array.from({length:70},(_,i)=>`正文 ${name} ${i}。\n\n`).join(''));
   await Promise.all(files.map((file,i)=>fs.writeFile(file,contents[i])));
   const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000}),page=await app.firstWindow();
+  const app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000}),page=await app.firstWindow();
   const ready=()=>page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);
   const activate=async name=>{await page.locator('.tab-open').filter({hasText:new RegExp('^'+name+'\\.md')}).click();await ready();};
   const menu=async name=>{await page.locator('.tab-open').filter({hasText:new RegExp('^'+name+'\\.md')}).click({button:'right'});await page.locator('[data-shell-menu="tabs"]').waitFor({state:'visible'});};

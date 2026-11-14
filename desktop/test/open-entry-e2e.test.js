@@ -5,8 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {spawn} from 'node:child_process';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile} from './ui-helpers.js';
+import { launchDesktop,openFile} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
 test('real startup, second processes and native file drops share one safe document-opening flow',{timeout:180000},async t=>{
@@ -14,12 +13,12 @@ test('real startup, second processes and native file drops share one safe docume
   await fs.mkdir(artifacts,{recursive:true});const folder=await fs.mkdtemp(path.join(artifacts,'run-'));
   const profile=path.join(folder,'profile'),workspace=path.join(folder,'我的 工作区');await fs.mkdir(workspace);
   const a=path.join(workspace,'A 中文 #%.md'),b=path.join(workspace,'B.md'),c=path.join(workspace,'C.markdown');
-  const invalid=path.join(workspace,'坏编码.md'),other=path.join(workspace,'unsupported.txt'),missing=path.join(folder,'missing.md');
-  await fs.writeFile(a,'# 首次打开');await fs.writeFile(b,'# 第二个文件');await fs.writeFile(c,'# 第三个文件');await fs.writeFile(invalid,Buffer.from([0xff,0xfe]));await fs.writeFile(other,'unsupported');
+  const invalid=path.join(workspace,'坏编码.md'),other=path.join(workspace,'unsupported.bin'),missing=path.join(folder,'missing.md');
+  await fs.writeFile(a,'# 首次打开');await fs.writeFile(b,'# 第二个文件');await fs.writeFile(c,'# 第三个文件');await fs.writeFile(invalid,Buffer.from([0xff]));await fs.writeFile(other,'unsupported');
   const packaged=process.env.MV_DESKTOP_EXECUTABLE,executable=packaged||require('electron');
   const args=files=>[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')]),...files];
   const env={...process.env,ELECTRON_RUN_AS_NODE:undefined};
-  const app=await _electron.launch({executablePath:executable,args:args([a]),env,timeout:60000});
+  const app=await launchDesktop({executablePath:executable,args:args([a]),env,timeout:60000});
   const page=await app.firstWindow(),errors=[];page.on('pageerror',error=>errors.push(error.message));
   const ready=()=>page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);
   const selected=filename=>page.waitForFunction(name=>window.desktopApp.state().document?.filename===name&&!window.desktopApp.state().busy,filename,{timeout:20000});
@@ -41,7 +40,7 @@ test('real startup, second processes and native file drops share one safe docume
   };
   const edit=async value=>{
     if(!await page.locator('#editor-pane').isVisible())await page.locator('[data-shell-mode="split"]').click();
-    await page.locator('#markdown-editor').focus();await page.keyboard.press('Control+a');await page.keyboard.insertText(value);
+    await page.locator('#markdown-editor').focus();await page.keyboard.press('ControlOrMeta+a');await page.keyboard.insertText(value);
     await page.waitForFunction(text=>window.desktopCodeEditor.getText()===text,value);await page.evaluate('window.desktopEditor.flush()');
   };
   try {
@@ -77,7 +76,7 @@ test('real startup, second processes and native file drops share one safe docume
     await t.test('mixed invalid files report failures without removing valid files or the active draft',async()=>{
       await second([missing,invalid,other,b]);await selected('B.md');
       await page.waitForFunction(()=>document.getElementById('open-notice-text').textContent.includes('UTF-8'));
-      const warning=await page.locator('#open-notice-text').innerText();assert.match(warning,/missing.md/);assert.match(warning,/unsupported.txt/);
+      const warning=await page.locator('#open-notice-text').innerText();assert.match(warning,/missing.md/);assert.match(warning,/unsupported.bin/);
       await second([invalid]);await page.waitForTimeout(300);assert.equal(await page.evaluate('window.desktopApp.state().document.filename'),'B.md');
       assert.equal(await page.locator('.document-tab').count(),3);
       await second([a]);await selected(path.basename(a));assert.equal(await page.evaluate('window.desktopCodeEditor.getText()'),'# 未保存的 A 草稿');
@@ -111,6 +110,17 @@ test('real startup, second processes and native file drops share one safe docume
       await app.evaluate(()=>{globalThis.__finishClosePrompt();delete globalThis.__finishClosePrompt;});await selected('B.md');
       await second([a]);await selected(path.basename(a));assert.equal(await page.evaluate('window.desktopCodeEditor.getText()'),'# 切换前最新 A 草稿');
       assert.equal(await fs.readFile(a,'utf8'),'# 首次打开');
+    });
+    await t.test('dropping a code file opens a read-only tab and retains the Markdown draft', async () => {
+      const code = path.join(workspace, '配置.yaml');
+      await fs.writeFile(code, 'enabled: true\n');
+      await drag([code]);
+      await selected(path.basename(code));
+      assert.equal(await page.locator('#mv-source-view .mv-source-line-content').textContent(), 'enabled: true');
+      assert.equal(await page.locator('#editor-pane').isHidden(), true);
+      await page.locator('.tab-open', { hasText: path.basename(a) }).click();
+      await selected(path.basename(a));
+      assert.equal(await page.evaluate(() => window.desktopCodeEditor.getText()), '# 切换前最新 A 草稿');
     });
   } finally {await app.evaluate(({dialog})=>{dialog.showMessageBox=async()=>({response:2});});await app.close();}
 });

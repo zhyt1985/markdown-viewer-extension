@@ -145,7 +145,7 @@ export function sanitizeFilenameBase(raw: string, fallback = 'table'): string {
   return cleaned || fallback;
 }
 
-function findHeadingBeforeTable(
+export function findHeadingBeforeTable(
   table: HTMLTableElement,
   container: HTMLElement,
 ): string {

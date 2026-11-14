@@ -180,7 +180,8 @@ describe('installed Chrome extension — table & image/diagram context menus', {
       await page.goto(url, { waitUntil: 'load' });
     }
     await waitFor(page, VIEWER_EMBED_READY_JS);
-    await evalJs(page, SET_STORAGE_JS, { ...FIXED_SETTINGS, ...settings });
+    // Menu assertions below use English labels regardless of the host locale.
+    await evalJs(page, SET_STORAGE_JS, { ...FIXED_SETTINGS, preferredLocale: 'en', ...settings });
     // Reload so the viewer bootstraps with the just-written settings.
     await page.goto(url, { waitUntil: 'load' });
     await waitFor(page, VIEWER_EMBED_READY_JS);
@@ -195,6 +196,28 @@ describe('installed Chrome extension — table & image/diagram context menus', {
     await waitForStable(page, WAIT_RENDERED_JS, 250);
     await evalJs(page, INSTALL_INSTRUMENT_JS);
   };
+
+  it('code copy still uses the browser clipboard by default', async () => {
+    const code = 'const message = "<keep & this>";\n\n  console.log(message);\n';
+    await openDocument('# Code copy\n\n```javascript\n' + code + '```\n');
+    await page.locator('#markdown-content h1').click();
+    await evalJs(page, `() => {
+      if (navigator.clipboard?.writeText) {
+        Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async text => { window.__mvCopiedCode = text; } });
+      } else {
+        document.execCommand = command => {
+          if (command !== 'copy') return false;
+          window.__mvCopiedCode = document.activeElement.value;
+          return true;
+        };
+      }
+    }`);
+    const copy = page.locator('#markdown-content .mv-code-copy-btn');
+    await copy.focus();
+    await page.keyboard.press('Enter');
+    await waitFor(page, `() => document.querySelector('.mv-code-copy-btn')?.dataset.copyState === 'success'`);
+    assert.equal(await evalJs(page, '() => window.__mvCopiedCode'), code);
+  });
 
   /** Right-click the center of the element matching `selector` + `hasText`. */
   const openMenuOn = async (selector: string, hasText: string) => {

@@ -208,69 +208,78 @@ export class MermaidRenderer extends BaseRenderer {
     const container = this.createContainer();
     container.style.cssText = 'position: absolute; left: -9999px; top: -9999px; display: inline-block; background: transparent; padding: 0; margin: 0;';
 
-    // Use unique ID with timestamp + random string to support parallel rendering
-    const diagramId = 'mermaid-diagram-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    const { svg } = await getMermaid().render(diagramId, code);
+    try {
+      // Use unique ID with timestamp + random string to support parallel rendering
+      const diagramId = 'mermaid-diagram-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      const { svg } = await getMermaid().render(diagramId, code).catch((error: unknown) => {
+        if (error instanceof Error) throw error;
+        const detail = typeof error === 'object' && error !== null
+          ? (error as { message?: unknown; str?: unknown }).message ?? (error as { str?: unknown }).str : error;
+        throw new Error(typeof detail === 'string' && detail ? detail : 'Mermaid could not render the diagram');
+      });
 
-    // Validate SVG content
-    if (!svg || svg.length < 100) {
-      throw new Error('Generated SVG is too small or empty');
+      // Validate SVG content
+      if (!svg || svg.length < 100) {
+        throw new Error('Generated SVG is too small or empty');
+      }
+
+      if (!svg.includes('<svg') || !svg.includes('</svg>')) {
+        throw new Error('Generated content is not valid SVG');
+      }
+
+      // Insert SVG into container
+      container.innerHTML = svg;
+
+      // Add padding to prevent text clipping
+      const svgElement = container.querySelector('svg');
+      if (!svgElement) {
+        throw new Error('SVG element not found in rendered content');
+      }
+      // Mermaid's HTML serialization can omit namespace declarations for
+      // xlink:href on actor menus. SVG loaded as an image is parsed as XML.
+      const vector = new XMLSerializer().serializeToString(svgElement);
+
+      // Wait until SVG reports a valid render size instead of using fixed sleeps.
+      const svgSize = await waitForRenderableSvg(svgElement);
+
+      // Wait for fonts with timeout, to avoid blocking forever in restricted contexts.
+      await waitForFontsReady();
+
+      const captureWidth = Math.ceil(svgSize.width);
+      const captureHeight = Math.ceil(svgSize.height);
+
+      // Get font family from theme config
+      const fontFamily = themeConfig?.fontFamily || "'SimSun', 'Times New Roman', Times, serif";
+
+      // Calculate scale for PNG dimensions (clamped to canvas limits)
+      const scale = this.clampCanvasDimensions(captureWidth, captureHeight, this.calculateCanvasScale(themeConfig));
+
+      // Apply rough.js hand-drawn effect:
+      // - Sequence diagrams: full rough effect (Mermaid's native handDrawn doesn't support them well)
+      // - Diagrams with arrows (flowchart, graph, classDiagram, stateDiagram): only process arrow markers
+      // - Other diagrams: no processing needed
+      let processedSvg = vector;
+      if (this.isSequenceDiagram(code)) {
+        processedSvg = this.applyRoughEffectToSvg(vector, themeConfig, false);
+      } else if (this.hasArrows(code)) {
+        processedSvg = this.applyRoughEffectToSvg(vector, themeConfig, true);
+      }
+
+      // Render SVG to canvas as PNG
+      const canvas = await this.renderSvgToCanvas(processedSvg, captureWidth * scale, captureHeight * scale, fontFamily);
+
+      const pngDataUrl = canvas.toDataURL('image/png', 1.0);
+      const base64Data = pngDataUrl.replace(/^data:image\/png;base64,/, '');
+
+      return {
+        base64: base64Data,
+        width: canvas.width,
+        height: canvas.height,
+        format: 'png',
+        svg: processedSvg,
+      };
+    } finally {
+      this.removeContainer(container);
     }
-
-    if (!svg.includes('<svg') || !svg.includes('</svg>')) {
-      throw new Error('Generated content is not valid SVG');
-    }
-
-    // Insert SVG into container
-    container.innerHTML = svg;
-
-    // Add padding to prevent text clipping
-    const svgElement = container.querySelector('svg');
-    if (!svgElement) {
-      throw new Error('SVG element not found in rendered content');
-    }
-
-    // Wait until SVG reports a valid render size instead of using fixed sleeps.
-    const svgSize = await waitForRenderableSvg(svgElement);
-
-    // Wait for fonts with timeout, to avoid blocking forever in restricted contexts.
-    await waitForFontsReady();
-
-    const captureWidth = Math.ceil(svgSize.width);
-    const captureHeight = Math.ceil(svgSize.height);
-
-    // Get font family from theme config
-    const fontFamily = themeConfig?.fontFamily || "'SimSun', 'Times New Roman', Times, serif";
-
-    // Calculate scale for PNG dimensions (clamped to canvas limits)
-    const scale = this.clampCanvasDimensions(captureWidth, captureHeight, this.calculateCanvasScale(themeConfig));
-
-    // Apply rough.js hand-drawn effect:
-    // - Sequence diagrams: full rough effect (Mermaid's native handDrawn doesn't support them well)
-    // - Diagrams with arrows (flowchart, graph, classDiagram, stateDiagram): only process arrow markers
-    // - Other diagrams: no processing needed
-    let processedSvg = svg;
-    if (this.isSequenceDiagram(code)) {
-      processedSvg = this.applyRoughEffectToSvg(svg, themeConfig, false);
-    } else if (this.hasArrows(code)) {
-      processedSvg = this.applyRoughEffectToSvg(svg, themeConfig, true);
-    }
-
-    // Render SVG to canvas as PNG
-    const canvas = await this.renderSvgToCanvas(processedSvg, captureWidth * scale, captureHeight * scale, fontFamily);
-
-    const pngDataUrl = canvas.toDataURL('image/png', 1.0);
-    const base64Data = pngDataUrl.replace(/^data:image\/png;base64,/, '');
-
-    // Cleanup container
-    this.removeContainer(container);
-
-    return {
-      base64: base64Data,
-      width: canvas.width,
-      height: canvas.height,
-      format: 'png',
-      svg: processedSvg,
-    };
   }
 }

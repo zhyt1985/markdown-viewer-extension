@@ -1,6 +1,9 @@
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const {validEncoding}=require('./text-codecs.cjs');
+const { samePath } = require('./resource-policy.cjs');
+
+const workspaceId = root => createHash('sha256').update('workspace\0').update(process.platform === 'win32' ? root.toLowerCase() : root).digest('hex');
 
 function validPath(value) { return typeof value === 'string' && value.length <= 32768 && path.isAbsolute(value) && !value.includes('\0'); }
 function validDocument(item) {
@@ -9,21 +12,24 @@ function validDocument(item) {
     &&(item.encoding===undefined||validEncoding(item.encoding));
 }
 function createNavigationHistory(state) {
-  let recent = [];
+  let recent = [], recentWorkspaces = [];
   return {
     async load() {
       const stored = await state.get(['desktopSession', 'desktopRecent']);
       const session = stored.desktopSession || { version: 1, workspaces: [], documents: [], activeSource: null };
       const history = stored.desktopRecent || { version: 1, items: [] };
+      const folders = history.workspaces === undefined ? [] : history.workspaces;
       if (session.version !== 1 || !Array.isArray(session.workspaces) || session.workspaces.length > 32
         || !session.workspaces.every(validPath) || !Array.isArray(session.documents) || session.documents.length > 32
         || !session.documents.every(validDocument) || (session.activeSource !== null && !validPath(session.activeSource))
-        || history.version !== 1 || !Array.isArray(history.items) || history.items.length > 20 || !history.items.every(validDocument)) {
+        || history.version !== 1 || !Array.isArray(history.items) || history.items.length > 20 || !history.items.every(validDocument)
+        || !Array.isArray(folders) || folders.length > 20 || !folders.every(validPath)) {
         throw Error('Invalid saved navigation state');
       }
       if ((session.untitledIds!==undefined&&(!Array.isArray(session.untitledIds)||session.untitledIds.length>32||!session.untitledIds.every(id=>typeof id==='string'&&/^[a-f0-9]{64}$/.test(id))))
         ||(session.activeDocumentId!==undefined&&session.activeDocumentId!==null&&(typeof session.activeDocumentId!=='string'||!/^[a-f0-9]{64}$/.test(session.activeDocumentId))))throw Error('Invalid saved document identities');
       recent = history.items;
+      recentWorkspaces = folders;
       return session;
     },
     touch(document) {
@@ -42,9 +48,19 @@ function createNavigationHistory(state) {
       if (index < 0) throw Error('Recent document is unavailable');
       return { ...recent[index] };
     },
-    clear() { recent = []; },
+    touchWorkspace(root) {
+      recentWorkspaces = [root, ...recentWorkspaces.filter(entry => !samePath(entry, root))].slice(0, 20);
+    },
+    listWorkspaces(openRoots) {
+      return recentWorkspaces.filter(root => !openRoots.some(open => samePath(open, root)))
+        .map(root => ({ id: workspaceId(root), name: path.basename(root) || root, root }));
+    },
+    resolveWorkspace(id, openRoots) {
+      return this.listWorkspaces(openRoots).find(item => item.id === id)?.root;
+    },
+    clear() { recent = []; recentWorkspaces = []; },
     async save(session) {
-      await state.update('set', { desktopSession: { version: 1, ...session }, desktopRecent: { version: 1, items: recent } });
+      await state.update('set', { desktopSession: { version: 1, ...session }, desktopRecent: { version: 1, items: recent, workspaces: recentWorkspaces } });
     },
   };
 }

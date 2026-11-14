@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "local-personal-desktop",
+  "auditReport": "desktop/P6_COVERAGE_AUDIT.zh-CN.md",
   "excluded": [
     "F11",
     "F13",
@@ -53,6 +54,7 @@
       ],
       "status": "in-progress",
       "evidence": [
+        "desktop/test/workspace-reveal-e2e.test.js",
         "desktop/BATCH_04.zh-CN.md",
         "desktop/test/workspace-e2e.test.js",
         "desktop/test/workspaces.test.js",
@@ -124,7 +126,9 @@
         "desktop/test/draft-store.test.js",
         "desktop/ALPHA_06.zh-CN.md",
         "desktop/test/reading-navigation-e2e.test.js",
-        "desktop/test/local-navigation.test.js"
+        "desktop/test/local-navigation.test.js",
+        "desktop/test/reading-layout-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
       ]
     },
     {
@@ -142,7 +146,9 @@
         "desktop/TABLE_OVERFLOW_FIX.zh-CN.md",
         "desktop/TABLE_WIDTH_FIT.zh-CN.md",
         "desktop/test/review-table-width-e2e.test.js",
-        "desktop/REVIEW_DOCUMENT_WIDTH.zh-CN.md"
+        "desktop/REVIEW_DOCUMENT_WIDTH.zh-CN.md",
+        "desktop/test/markdown-reading-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
       ]
     },
     {
@@ -163,7 +169,9 @@
         "desktop/test/review-table-width-e2e.test.js",
         "desktop/REVIEW_DOCUMENT_WIDTH.zh-CN.md",
         "desktop/test/reading-font-diagram-e2e.test.js",
-        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md"
+        "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
+        "desktop/test/settings-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
       ]
     },
     {
@@ -193,7 +201,10 @@
         "desktop/test/reading-font-diagram-e2e.test.js",
         "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
         "desktop/test/tab-context-menu-e2e.test.js",
-        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md",
+        "desktop/test/settings-e2e.test.js",
+        "desktop/BUILD.zh-CN.md",
+        "desktop/test/reading-layout-e2e.test.js"
       ]
     },
     {
@@ -231,6 +242,8 @@
       ],
       "status": "in-progress",
       "evidence": [
+        "desktop/test/diagram-formats-e2e.test.js",
+        "desktop/BUILD.zh-CN.md",
         "desktop/test/e2e.test.js",
         "desktop/BATCH_01.zh-CN.md",
         "desktop/BATCH_02.zh-CN.md",
@@ -244,8 +257,12 @@
       "phases": [
         "P4"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/slidev-e2e.test.js",
+        "test/suites/extension-e2e/slidev.test.ts",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F12",
@@ -255,8 +272,14 @@
         "P3",
         "P4"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/local-source-e2e.test.js",
+        "desktop/test/image-file-e2e.test.js",
+        "desktop/test/html-file-e2e.test.js",
+        "desktop/test/open-entry-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F14",
@@ -268,6 +291,8 @@
       ],
       "status": "in-progress",
       "evidence": [
+        "desktop/test/code-copy-e2e.test.js",
+        "test/suites/extension-e2e/context-menu-e2e.test.ts",
         "desktop/test/reading-font-diagram-e2e.test.js",
         "desktop/READING_FONTS_DIAGRAMS.zh-CN.md"
       ]
@@ -279,8 +304,11 @@
       "phases": [
         "P3"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/annotations-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F16",
@@ -300,7 +328,9 @@
         "desktop/test/document-files.test.js",
         "desktop/ALPHA_05.zh-CN.md",
         "desktop/test/untitled-e2e.test.js",
-        "desktop/test/draft-store.test.js"
+        "desktop/test/draft-store.test.js",
+        "desktop/test/settings-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
       ]
     },
     {
@@ -310,8 +340,12 @@
       "phases": [
         "P5"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/html-export-e2e.test.js",
+        "test/suites/browser-contracts/html-export-layout.test.ts",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F19",
@@ -322,6 +356,7 @@
       ],
       "status": "in-progress",
       "evidence": [
+        "desktop/test/pdf-layout-e2e.test.js",
         "desktop/test/e2e.test.js",
         "desktop/BATCH_01.zh-CN.md",
         "desktop/BATCH_02.zh-CN.md",
@@ -331,7 +366,9 @@
         "desktop/test/document-files.test.js",
         "desktop/ALPHA_01.zh-CN.md",
         "desktop/test/shell-e2e.test.js",
-        "desktop/test/profile-migration.test.js"
+        "desktop/test/profile-migration.test.js",
+        "desktop/test/reading-layout-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
       ]
     },
     {
@@ -359,8 +396,11 @@
       "phases": [
         "P5"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/image-context-menu-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F22",
@@ -369,8 +409,12 @@
       "phases": [
         "P5"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/table-context-menu-e2e.test.js",
+        "test/suites/table-export/table-xlsx.test.ts",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F23",
@@ -379,8 +423,13 @@
       "phases": [
         "P5"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/png-export-e2e.test.js",
+        "desktop/test/asset-export-e2e.test.js",
+        "test/suites/browser-contracts/cli-assets.test.ts",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F25",
@@ -389,8 +438,12 @@
       "phases": [
         "P4"
       ],
-      "status": "not-started",
-      "evidence": []
+      "status": "in-progress",
+      "evidence": [
+        "desktop/test/html-import-e2e.test.js",
+        "test/suites/extension-e2e/save-file-name.test.ts",
+        "desktop/BUILD.zh-CN.md"
+      ]
     },
     {
       "id": "F27",
@@ -413,7 +466,10 @@
         "desktop/test/shell-e2e.test.js",
         "desktop/test/profile-migration.test.js",
         "desktop/ALPHA_03.zh-CN.md",
-        "desktop/test/live-preview-e2e.test.js"
+        "desktop/test/live-preview-e2e.test.js",
+        "desktop/test/settings-e2e.test.js",
+        "desktop/test/locale-e2e.test.js",
+        "desktop/BUILD.zh-CN.md"
       ]
     },
     {
@@ -427,6 +483,8 @@
       ],
       "status": "in-progress",
       "evidence": [
+        "desktop/test/resource-folders-e2e.test.js",
+        "desktop/BUILD.zh-CN.md",
         "desktop/test/e2e.test.js",
         "desktop/BATCH_01.zh-CN.md",
         "desktop/BATCH_02.zh-CN.md",
@@ -509,7 +567,14 @@
         "desktop/test/reading-font-diagram-e2e.test.js",
         "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
         "desktop/test/tab-context-menu-e2e.test.js",
-        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md",
+        "desktop/test/settings-e2e.test.js",
+        "desktop/test/locale-e2e.test.js",
+        "desktop/BUILD.zh-CN.md",
+        "desktop/test/reading-layout-e2e.test.js",
+        "desktop/P6_COVERAGE_AUDIT.zh-CN.md",
+        "desktop/test/delivery-scope-e2e.test.js",
+        "test/suites/export-contracts/docx-export-contract.test.ts"
       ]
     },
     {
@@ -563,7 +628,16 @@
         "desktop/test/reading-font-diagram-e2e.test.js",
         "desktop/READING_FONTS_DIAGRAMS.zh-CN.md",
         "desktop/test/tab-context-menu-e2e.test.js",
-        "desktop/TAB_CONTEXT_MENU.zh-CN.md"
+        "desktop/TAB_CONTEXT_MENU.zh-CN.md",
+        "desktop/test/settings-e2e.test.js",
+        "desktop/BUILD.zh-CN.md",
+        "desktop/test/reading-layout-e2e.test.js",
+        "desktop/P6_DELIVERY.zh-CN.md",
+        "desktop/test/profile-backup-e2e.test.js",
+        "desktop/test/performance-baseline.js",
+        "desktop/test/resource-endurance.js",
+        "desktop/test/progressive-reading-e2e.test.js",
+        "desktop/test/workspace-search-baseline.js"
       ]
     }
   ]

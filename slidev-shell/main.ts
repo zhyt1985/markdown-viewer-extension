@@ -12,6 +12,18 @@ import { loadThemeFromCode, loadThemeFromUrl } from './theme-loader'
 import { bootstrap } from './bootstrap'
 import { bootstrapList } from './bootstrap-list'
 import { initSlides } from './shims/slides'
+import type { ParsedSlide, SlidevConfigs } from '../src/slidev/slidev-core'
+
+const desktop = location.protocol === 'documd:' && location.hostname === 'slides'
+const printing = desktop && window.parent === window && new URLSearchParams(location.search).get('print') === '1'
+const parentOrigins = ['documd://viewer', 'documd://export']
+let parentOrigin = ''
+type InitData = { slides: ParsedSlide[]; configs: SlidevConfigs; mode?: string; themeCode?: string; themeUrl?: string; page?: number }
+declare global { interface Window { desktopSlidevPrint?: (data: InitData) => Promise<void> } }
+
+function isDesktopParent(event: MessageEvent) {
+  return event.source === window.parent && parentOrigins.includes(event.origin) && (!parentOrigin || event.origin === parentOrigin)
+}
 
 // Expose Vue as global for theme IIFE bundles
 ;(window as any).Vue = Vue
@@ -25,26 +37,37 @@ gotoDialogFallbackStyle.textContent = [
 document.head.appendChild(gotoDialogFallbackStyle)
 
 /** Wait for SLIDEV_INIT message from host, or use pre-injected data */
-function waitForData(): Promise<{ mode?: string; themeCode?: string; themeUrl?: string }> {
+function waitForData(): Promise<Partial<InitData>> {
   // If data already injected (standalone / direct usage), proceed
   if ((window as any).__SLIDEV__?.slides?.length) {
     return Promise.resolve({})
   }
 
   return new Promise((resolve) => {
+    const initialize = (data: InitData) => {
+      ;(window as any).__SLIDEV__ = { slides: data.slides, configs: data.configs || {} }
+      resolve(data)
+    }
+    if (printing) {
+      window.desktopSlidevPrint = data => {
+        delete window.desktopSlidevPrint
+        initialize({ ...data, mode: 'print' })
+        return ready
+      }
+      return
+    }
     window.addEventListener('message', function handler(event: MessageEvent) {
-      if (event.data?.type === 'SLIDEV_INIT') {
+      if (event.data?.type === 'SLIDEV_INIT' && (!desktop || isDesktopParent(event))) {
         window.removeEventListener('message', handler)
-        ;(window as any).__SLIDEV__ = {
-          slides: event.data.slides,
-          configs: event.data.configs || {},
-        }
-        resolve({ mode: event.data.mode, themeCode: event.data.themeCode, themeUrl: event.data.themeUrl })
+        if (desktop) parentOrigin = event.origin
+        initialize(event.data)
       }
     })
     // Signal readiness to the host content script
     if (window.parent !== window) {
-      window.parent.postMessage({ type: 'SLIDEV_SHELL_READY' }, '*')
+      if (desktop) {
+        for (const origin of parentOrigins) window.parent.postMessage({ type: 'SLIDEV_SHELL_READY' }, origin)
+      } else window.parent.postMessage({ type: 'SLIDEV_SHELL_READY' }, '*')
     }
   })
 }
@@ -77,17 +100,25 @@ function injectGoogleFonts(fonts: { sans?: string; mono?: string; serif?: string
 }
 
 async function main() {
-  const { mode, themeCode, themeUrl } = await waitForData()
+  const { mode, themeCode, themeUrl, page = 1 } = await waitForData()
 
   // Register diagram listener early — before async theme loading and Vue bootstrap.
   // Diagram render results from the host may arrive while we're still loading;
   // the listener stores them in a Map and a MutationObserver applies them once DOM is ready.
-  setupDiagramListener()
+  if (!desktop) setupDiagramListener()
+  else if (!printing) window.addEventListener('keydown', event => {
+    if (event.key === 'Escape') window.parent.postMessage({ type: 'SLIDEV_DESKTOP_ESCAPE' }, parentOrigin)
+  })
 
   // Load theme: prefer eval (themeCode) for blob-URL contexts,
   // fall back to <script src> (themeUrl) for strict CSP contexts
   let theme
-  if (themeCode) {
+  if (desktop) {
+    const url = new URL(themeUrl || '', location.href)
+    if (url.protocol !== location.protocol || url.host !== location.host || !/^\/assets\/slidev\/themes\/theme-[a-z-]+\.js$/.test(url.pathname)) throw Error('Invalid bundled Slidev theme')
+    theme = await loadThemeFromUrl(url.href)
+    if (!theme) throw Error('Bundled Slidev theme could not be loaded')
+  } else if (themeCode) {
     theme = loadThemeFromCode(themeCode)
   } else if (themeUrl) {
     theme = await loadThemeFromUrl(themeUrl)
@@ -97,7 +128,7 @@ async function main() {
   }
   if (theme) {
     ;(window as any).__SLIDEV__.themeLayouts = theme.layouts
-    injectGoogleFonts(theme.fonts)
+    if (!desktop) injectGoogleFonts(theme.fonts)
     // Apply colorSchema: theme's fixed schema (dark/light) takes priority over
     // frontmatter, because a dark-only theme like Dracula cannot work in light mode.
     // Must also toggle DOM class directly because @slidev/client/logic/dark.ts
@@ -119,12 +150,33 @@ async function main() {
 
   initSlides()
 
-  if (mode === 'list') {
-    await bootstrapList()
+  if (mode === 'list' || mode === 'print') {
+    await bootstrapList(mode === 'print')
+    if (desktop) {
+      await Vue.nextTick()
+      await document.fonts.ready
+      const items = document.querySelectorAll('.slidev-list-item')
+      if (printing) await Promise.all(Array.from(document.images, image => image.decode()))
+      else items[page - 1]?.scrollIntoView()
+      if (!printing) window.parent.postMessage({ type: 'SLIDEV_DESKTOP_MOUNTED', total: items.length }, parentOrigin)
+    }
     return
   }
 
-  await bootstrap()
+  await bootstrap(desktop ? async nav => {
+    if (page > 1) await nav.go(Math.min(page, nav.total.value))
+    const notify = () => window.parent.postMessage({ type: 'SLIDEV_DESKTOP_PAGE', page: nav.currentSlideNo.value, total: nav.total.value }, parentOrigin)
+    Vue.watch(nav.currentSlideNo, notify)
+    window.addEventListener('message', event => {
+      if (!isDesktopParent(event) || event.data?.type !== 'SLIDEV_DESKTOP_NAV') return
+      if (event.data.direction === 1) void nav.nextSlide()
+      if (event.data.direction === -1) void nav.prevSlide()
+    })
+    await Vue.nextTick()
+    await document.fonts.ready
+    notify()
+    window.parent.postMessage({ type: 'SLIDEV_DESKTOP_MOUNTED', total: nav.total.value }, parentOrigin)
+  } : undefined)
 
   // On touch devices, enable tap-to-navigate (right half → next, left half → prev).
   // Slidev's built-in click handler only fires on the container margin area
@@ -205,4 +257,8 @@ function setupTapNavigation() {
   }, { passive: true })
 }
 
-main()
+const ready = main()
+void ready.catch(error => {
+  console.error('[slidev-shell]', error)
+  if (desktop && parentOrigin) window.parent.postMessage({ type: 'SLIDEV_DESKTOP_ERROR' }, parentOrigin)
+})

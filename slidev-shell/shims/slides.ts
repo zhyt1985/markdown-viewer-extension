@@ -91,6 +91,12 @@ function createSlideComponent(slide: SlidevShellSlide): Component {
   const Layout = LAYOUTS[layoutName] ?? LAYOUTS.default
   const slots = slide.slots || { default: slide.html }
   const hasClicks = (slide.clicksTotal ?? 0) > 0
+  const desktop = location.protocol === 'documd:' && location.hostname === 'slides'
+  // The desktop host only forwards colors and validated embedded images.
+  const layoutProps = desktop ? {
+    ...(slide.frontmatter?.background ? { background: slide.frontmatter.background } : {}),
+    ...(slide.frontmatter?.image ? { image: slide.frontmatter.image } : {}),
+  } : null
 
   return defineComponent({
     name: `Slide${slide.no}`,
@@ -128,7 +134,7 @@ function createSlideComponent(slide: SlidevShellSlide): Component {
               })
           }
         }
-        return h(Layout, null, slotFns)
+        return h(Layout, layoutProps, slotFns)
       }
     },
   })

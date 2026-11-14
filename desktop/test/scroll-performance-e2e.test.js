@@ -4,8 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile} from './ui-helpers.js';
+import { launchDesktop,openFile} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
 test('large-document scroll lookup stays logarithmic and display images retain original assets',{timeout:120000},async t=>{
@@ -15,7 +14,7 @@ test('large-document scroll lookup stays logarithmic and display images retain o
   const diagram='```mermaid\ngraph LR\n'+['A','B','C','D'].map(id=>`${id}[${label}]`).join(' --> ')+'\n```';
   const body='# 性能回归\n\n'+Array.from({length:400},(_,i)=>`## 段落 ${i}\n\n正文 ${i}。\n\n`).join('')+diagram;
   await fs.writeFile(file,body);const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+  const app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
   const page=await app.firstWindow();
   try{
     await page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);

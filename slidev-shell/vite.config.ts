@@ -18,6 +18,7 @@ function deduplicateKaTeXFonts(): Plugin {
       if (result !== code) return result
     },
     generateBundle(_, bundle) {
+      if (process.env.DOCUMD_SLIDEV_BUNDLE_FONTS === '1') return
       // Remove KaTeX font assets from the bundle
       for (const name of Object.keys(bundle)) {
         if (bundle[name].type === 'asset' && /KaTeX_.*\.woff2$/.test(name)) {

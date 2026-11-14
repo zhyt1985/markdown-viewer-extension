@@ -97,6 +97,7 @@ class DocxExporter {
   private totalResources = 0;
   private processedResources = 0;
   private resourceEmbedder: ResourceEmbedder;
+  private rewriteObsidianSyntax: boolean;
 
   private docxHrDisplay: 'pageBreak' | 'line' | 'hide' = 'hide';
   private docxEmojiStyle: EmojiStyle = 'windows';
@@ -113,8 +114,9 @@ class DocxExporter {
   private listConverter: ListConverter | null = null;
   private inlineConverter: InlineConverter | null = null;
 
-  constructor(renderer: PluginRenderer | null = null) {
+  constructor(renderer: PluginRenderer | null = null, { rewriteObsidianSyntax = true } = {}) {
     this.renderer = renderer;
+    this.rewriteObsidianSyntax = rewriteObsidianSyntax;
     this.resourceEmbedder = new ResourceEmbedder();
   }
 
@@ -524,7 +526,7 @@ class DocxExporter {
     // Extract frontmatter if present
     const [frontmatter, cleanMarkdown] = this.extractFrontmatter(markdown);
     this.frontmatterContent = frontmatter;
-    const normalizedMarkdown = rewriteObsidianLinks(cleanMarkdown);
+    const normalizedMarkdown = this.rewriteObsidianSyntax ? rewriteObsidianLinks(cleanMarkdown) : cleanMarkdown;
     const footnoteAwareMarkdown = buildDocxFootnoteMarkdown(normalizedMarkdown);
 
     const processor = unified()

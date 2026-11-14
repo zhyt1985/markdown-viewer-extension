@@ -1,4 +1,4 @@
-import { openFile, openWorkspace, exportFile, cancelExport, openSettings, closeDialogs, selectNav, documentMenu } from './ui-helpers.js';
+import { launchDesktop, openFile, openWorkspace, exportFile, cancelExport, openSettings, closeDialogs, selectNav, documentMenu } from './ui-helpers.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -6,7 +6,6 @@ import { createRequire } from 'node:module';
 import { inflateRawSync } from 'node:zlib';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { _electron } from 'playwright-core';
 import { createCanvas } from '../node_modules/@napi-rs/canvas/index.js';
 import { getDocument } from '../node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 
@@ -53,7 +52,7 @@ test('real desktop runtime: offline preview, exports and file boundaries', { tim
   await fs.writeFile(secret, 'must not be readable');
 
   const packaged = process.env.MV_DESKTOP_EXECUTABLE;
-  const electron = await _electron.launch({
+  const electron = await launchDesktop({
     executablePath: packaged || require('electron'),
     args: [`--user-data-dir=${path.join(temporary, 'profile')}`, ...(packaged ? [] : [path.join(root, 'dist/desktop/app')])],
     env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined }, timeout: 60000,
@@ -95,7 +94,7 @@ test('real desktop runtime: offline preview, exports and file boundaries', { tim
       }
       // Use the actual resource capability to exercise canonical containment, not just token rejection.
       assert.equal(await page.evaluate(`fetch(${JSON.stringify(originalImage)}).then(r => r.status)`), 200);
-      const token = new URL(originalImage).pathname.split('/')[2];
+      const token = new URL(originalImage).searchParams.get('token');
       assert.equal(await page.evaluate(`fetch(${JSON.stringify(`documd://viewer/read-file?token=${token}&path=${encodeURIComponent(secret)}`)}).then(r => r.status)`), 403);
       assert.equal(await page.evaluate('fetch("https://example.com/").then(() => false, () => true)'), true);
     });
@@ -143,6 +142,42 @@ test('real desktop runtime: offline preview, exports and file boundaries', { tim
         }
       });
     }
+
+    await t.test('clearing cache during a render keeps its preview but prevents an old cache write', async () => {
+      await page.evaluate(() => globalThis.platform.cache.clear());
+      const workerScript = async source => electron.evaluate(({ BrowserWindow }, script) => {
+        const worker = BrowserWindow.getAllWindows().find(w => w.webContents.getURL() === 'documd://render/render-host.html');
+        return worker.webContents.executeJavaScript(script);
+      }, source);
+      await workerScript(`
+        window.__cacheProbeStarted = new Promise(started => {
+          const render = window.renderHost;
+          window.renderHost = async (...args) => {
+            window.renderHost = render;
+            await new Promise(resolve => { window.__releaseCacheProbe = resolve; started(); });
+            return render(...args);
+          };
+        });
+        undefined;
+      `);
+      await openFile(page);
+      await workerScript('window.__cacheProbeStarted');
+      try {
+        await openSettings(page);
+        await page.click('#clear-cache');
+        await waitFor(page, 'document.querySelector("#cache-status").textContent.includes("0 项")');
+        await closeDialogs(page);
+      } finally {
+        await workerScript('window.__releaseCacheProbe(); delete window.__releaseCacheProbe; delete window.__cacheProbeStarted;');
+        await waitFor(page, '!document.querySelector("#open").disabled');
+      }
+      assert.match(await page.locator('#status').innerText(), /预览完成/);
+      assert.equal(await page.locator('#markdown-content .diagram-block[data-plugin-type="mermaid"]').count(), 1);
+      assert.equal((await page.evaluate(() => globalThis.platform.cache.getStats())).itemCount, 0);
+      await openFile(page);
+      await waitFor(page, '!document.querySelector("#open").disabled');
+      assert.ok((await page.evaluate(() => globalThis.platform.cache.getStats())).items.some(item => item.type === 'mermaid'));
+    });
 
     await t.test('diagram rendering uses a separate sandboxed process and recovers from a real crash', async () => {
       await page.evaluate('globalThis.platform.cache.clear()');
@@ -312,7 +347,7 @@ test('reading position, settings and disk cache survive a full application resta
   let app;
   async function launch() {
     const packaged = process.env.MV_DESKTOP_EXECUTABLE;
-    app = await _electron.launch({ executablePath: packaged || require('electron'),
+    app = await launchDesktop({ executablePath: packaged || require('electron'),
       args: [`--user-data-dir=${profile}`, ...(packaged ? [] : [path.join(root, 'dist/desktop/app')])],
       env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined }, timeout: 60000 });
     const page = await app.firstWindow();
@@ -344,7 +379,7 @@ test('reading position, settings and disk cache survive a full application resta
     await page.evaluate('window.__serviceEvents = []; globalThis.platform.message.addListener(m => window.__serviceEvents.push(m.type)); undefined');
     await openSettings(page); await page.selectOption('#locale', 'zh_CN');
     await waitFor(page, 'document.documentElement.lang === "zh-CN" && !document.querySelector("#locale").disabled');
-    assert.equal(await page.locator('#open').innerText(), '打开文件');
+    assert.equal(await page.locator('#open [data-ui-text]').innerText(), '打开文件…');
     await waitFor(page, 'window.__serviceEvents.includes("SETTINGS_CHANGED")');
     assert.equal(await page.evaluate('globalThis.platform.cache.set("restart-probe", {text:"持久缓存"}, "test")'), true);
     const initialStats = await page.evaluate('globalThis.platform.cache.getStats()');
@@ -362,13 +397,15 @@ test('reading position, settings and disk cache survive a full application resta
     assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().some(w => w.webContents.getURL() === 'documd://render/render-host.html')), false,
       'reopening the unchanged document should reuse its persisted diagram result');
     assert.equal(await page.locator('#locale').inputValue(), 'zh_CN');
-    assert.equal(await page.locator('#open').innerText(), '打开文件');
+    assert.equal(await page.locator('#open [data-ui-text]').innerText(), '打开文件…');
     assert.ok(Math.abs(await page.evaluate('document.getElementById("reader").scrollTop') - position) < 3);
     assert.deepEqual(await page.evaluate('globalThis.platform.cache.get("restart-probe")'), { text: '持久缓存' });
     await openSettings(page); await page.click('#clear-cache');
     await waitFor(page, 'document.querySelector("#cache-status").textContent.includes("0 项")');
     assert.equal((await page.evaluate('globalThis.platform.cache.getStats()')).itemCount, 0);
     assert.equal(await page.evaluate('globalThis.platform.settings.get("preferredLocale")'), 'zh_CN');
+    assert.equal(await page.evaluate(() => window.desktop.recent().then(items => items[0]?.filename)), '长文阅读.md');
+    assert.ok(Math.abs(await page.evaluate('document.getElementById("reader").scrollTop') - position) < 3);
     const saved = await page.evaluate('globalThis.platform.fileState.get(globalThis.platform.document.documentPath) .catch(() => null)');
     // Public reading APIs accept stable document IDs; arbitrary filesystem strings are denied.
     assert.equal(saved, null);

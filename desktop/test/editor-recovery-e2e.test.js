@@ -4,8 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile,documentMenu,closeDialogs,openSettings} from './ui-helpers.js';
+import { launchDesktop,openFile,documentMenu,closeDialogs,openSettings} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
 test('CodeMirror history, replacement and durable drafts work through real process restarts', {timeout:180000},async t=>{
@@ -19,7 +18,7 @@ test('CodeMirror history, replacement and durable drafts work through real proce
   const edit=async value=>{await page.fill('#markdown-editor',value);await page.waitForFunction(expected=>window.desktopCodeEditor.getText()===expected,value);await page.evaluate('window.desktopEditor.flush()');};
   const launch=async()=>{
     const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-    app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+    app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
     page=await app.firstWindow(); await ready();
     await app.evaluate(({dialog})=>{dialog.showMessageBox=async()=>({response:0});});
   };
@@ -33,7 +32,8 @@ test('CodeMirror history, replacement and durable drafts work through real proce
       await page.fill('.cm-search input[name="search"]','原文'); await page.fill('.cm-search input[name="replace"]','编辑');
       await page.click('.cm-search button[name="replaceAll"]'); await page.evaluate('window.desktopEditor.flush()');
       assert.equal(await text(),'# 编辑\n\n编辑正文');await page.click('.cm-search button[name="close"]');
-      await page.locator('.tab-open',{hasText:'B.md'}).click();await ready();await edit('# B 编辑');
+      await page.locator('.tab-open',{hasText:'B.md'}).click();await ready();
+      await page.locator('[data-shell-mode="split"]').click();await edit('# B 编辑');
       await page.locator('.tab-open',{hasText:'A.md'}).click();await ready();
       await page.click('[data-editor-command="undo"]');await page.evaluate('window.desktopEditor.flush()');assert.equal(await text(),'# 原文\n\n原文正文');
       await page.click('[data-editor-command="redo"]');await page.evaluate('window.desktopEditor.flush()');

@@ -153,11 +153,11 @@ function collectFilteredCss(keepFontFaces: boolean): string {
 }
 
 /**
- * Collect content CSS for standalone HTML export. `@font-face` rules are
- * stripped (fonts come from the exporter's CDN stylesheet link).
+ * Collect content CSS for standalone HTML export. Browser hosts load KaTeX
+ * separately; offline hosts can retain their already bundled font faces.
  */
-export function collectContentCss(): string {
-  return collectFilteredCss(false);
+export function collectContentCss(includeBundledFonts = false): string {
+  return collectFilteredCss(includeBundledFonts);
 }
 
 const FONT_FACE_RE = /@font-face\s*\{[^{}]*\}/gi;

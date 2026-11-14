@@ -5,8 +5,7 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile} from './ui-helpers.js';
+import { launchDesktop,openFile} from './ui-helpers.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
@@ -21,7 +20,7 @@ test('six-column review table with hard breaks and inline code fits in reading a
   const file=process.env.MV_DESKTOP_WIDTH_DOCUMENT||fixture;
   const digest=async()=>createHash('sha256').update(await fs.readFile(file)).digest('hex'),before=await digest();
   const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+  const app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
   const page=await app.firstWindow(),measurements=[];
   try{
     await page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);

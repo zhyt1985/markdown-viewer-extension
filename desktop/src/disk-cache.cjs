@@ -4,6 +4,7 @@ const { createHash } = require('node:crypto');
 
 function createDiskCache(directory, namespace, { maxItems = 100, maxBytes = 64 * 1024 * 1024, maxEntryBytes = 8 * 1024 * 1024 } = {}) {
   let queue = Promise.resolve();
+  let generation = 0;
   let clock = Date.now();
   const tick = () => (clock = Math.max(clock + 1, Date.now()));
   const name = key => `${createHash('sha256').update(namespace + '\0' + key).digest('hex')}.json`;
@@ -49,6 +50,7 @@ function createDiskCache(directory, namespace, { maxItems = 100, maxBytes = 64 *
     entry.size = Buffer.byteLength(data);
   }
   return {
+    get generation() { return generation; },
     get(key) { return run(async () => {
       const records = await evict(await entries());
       const entry = records.find(record => record.key === key);
@@ -56,7 +58,8 @@ function createDiskCache(directory, namespace, { maxItems = 100, maxBytes = 64 *
       entry.accessTime = tick(); await write(entry);
       return entry.value;
     }); },
-    set(key, value, type = 'unknown') { return run(async () => {
+    set(key, value, type = 'unknown', expectedGeneration) { return run(async () => {
+      if (expectedGeneration !== undefined && expectedGeneration !== generation) return false;
       if (typeof key !== 'string' || key.length > 512) throw Error('Invalid cache key');
       const data = JSON.stringify(value);
       if (data === undefined || Buffer.byteLength(data) > maxEntryBytes) return false;
@@ -66,7 +69,13 @@ function createDiskCache(directory, namespace, { maxItems = 100, maxBytes = 64 *
       return records.includes(entry);
     }); },
     delete(key) { return run(async () => { await fs.unlink(path.join(directory, name(key))).catch(error => { if (error.code !== 'ENOENT') throw error; }); return true; }); },
-    clear() { return run(async () => { for (const entry of await entries()) await fs.unlink(path.join(directory, name(entry.key))); return true; }); },
+    clear() {
+      generation++;
+      return run(async () => {
+        for (const entry of await entries()) await fs.unlink(path.join(directory, name(entry.key)));
+        return true;
+      });
+    },
     stats() { return run(async () => {
       const records = await evict(await entries());
       const totalSize = records.reduce((sum, entry) => sum + entry.size, 0);

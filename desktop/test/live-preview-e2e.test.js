@@ -4,8 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile,openSettings,closeDialogs} from './ui-helpers.js';
+import { launchDesktop,openFile,openSettings,closeDialogs} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
 test('live preview and bidirectional source mapping preserve current revisions and editing responsiveness',{timeout:180000},async t=>{
@@ -13,7 +12,7 @@ test('live preview and bidirectional source mapping preserve current revisions a
   await fs.mkdir(artifacts,{recursive:true});const folder=await fs.mkdtemp(path.join(artifacts,'run-'));
   const a=path.join(folder,'A.md'),b=path.join(folder,'B.md');await fs.writeFile(a,'# 初始正文');await fs.writeFile(b,'# B 正文');
   const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+  const app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
   const page=await app.firstWindow(),errors=[];page.on('pageerror',error=>errors.push(error.message));
   const ready=()=>page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);
   const settled=async()=>{
@@ -24,7 +23,7 @@ test('live preview and bidirectional source mapping preserve current revisions a
     }
   };
   const edit=async text=>{
-    await page.locator('#markdown-editor').focus();await page.keyboard.press('Control+a');await page.keyboard.insertText(text);
+    await page.locator('#markdown-editor').focus();await page.keyboard.press('ControlOrMeta+a');await page.keyboard.insertText(text);
     await page.waitForFunction(expected=>window.desktopCodeEditor.getText()===expected,text,{timeout:10000});await page.evaluate('window.desktopEditor.flush()');
   };
   const preference=async(id,value)=>{await openSettings(page);await page.locator('#'+id).setChecked(value);await page.waitForFunction(selector=>!document.getElementById(selector).disabled,id);await closeDialogs(page);};
@@ -99,7 +98,7 @@ test('live preview and bidirectional source mapping preserve current revisions a
       assert.equal(await page.evaluate('window.desktopCodeEditor.selectionLine'),expected);
       await page.click('#locate-preview');
       assert.equal(await page.locator('.search-line-target').getAttribute('data-line'),String(expected-1));
-      await page.locator('.cm-scroller').click({position:{x:100,y:30}});await page.keyboard.press('Control+Home');
+      await page.locator('.cm-scroller').click({position:{x:100,y:30}});await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowUp' : 'Control+Home');
       const source=page.locator('.cm-line').filter({hasText:/^# 长文$/});await source.dblclick();
       assert.equal(await page.locator('.search-line-target').getAttribute('data-line'),'4');
     });

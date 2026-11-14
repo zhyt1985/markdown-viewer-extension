@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import policy from '../src/resource-policy.cjs';
 
 test('canonical resource grants reject traversal, sibling prefixes and directory links', async () => {
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'documd-policy-'));
+  const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'documd-policy-')));
   try {
     const root = path.join(temporary, 'allowed');
     const sibling = path.join(temporary, 'allowed-other');

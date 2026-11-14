@@ -4,8 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile} from './ui-helpers.js';
+import { launchDesktop,openFile} from './ui-helpers.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
@@ -20,7 +19,7 @@ test('wide tables stay inside the reading page and remain accessible after resiz
   const markdown=`# 表格宽度回归\n\n| ${row} |\n| ${Array(16).fill('---').join(' | ')} |\n| ${row} |\n\n表格后的正文。\n\n| 名称 | 值 |\n| --- | --- |\n| 小表 | 42 |\n\n| 说明 | 链接 | 代码 | 状态 |\n| --- | --- | --- | --- |\n| ${prose} | [${url}](${url}) | \`${code}\` | 完整 |`;
   await fs.writeFile(file,markdown);
   const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+  const app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
   const page=await app.firstWindow();
   const contained=async()=>{
     const geometry=await page.evaluate(()=>{

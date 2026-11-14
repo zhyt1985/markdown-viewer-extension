@@ -16,13 +16,29 @@ watchEffect(() => {
 })
 
 const rootRef = ref<HTMLElement>()
+const props = defineProps<{ print?: boolean }>()
 const { width: containerWidth } = useElementSize(rootRef)
 
 // Scale factor: fit slide width into available container width
 const listScale = computed(() => {
+  if (props.print) return 1
   const available = containerWidth.value - 8 // 4px padding each side
   if (available <= 0 || slideWidth.value <= 0) return 1
   return Math.min(1, available / slideWidth.value)
+})
+
+watchEffect(() => {
+  if (!props.print) return
+  document.documentElement.classList.add('documd-slidev-print')
+  let style = document.getElementById('documd-slidev-paper')
+  if (!style) {
+    style = document.createElement('style')
+    style.id = 'documd-slidev-paper'
+    document.head.append(style)
+  }
+  // Chromium rounds PDF paper dimensions down to print units. A pixel of
+  // vertical clearance keeps an otherwise exact-fit slide on one page.
+  style.textContent = `@page { size: ${slideWidth.value}px ${slideHeight.value + 1}px; margin: 0; }`
 })
 
 const allSlides = computed(() =>
@@ -48,7 +64,7 @@ const allSlides = computed(() =>
         :route="route"
         :style="{ transform: `scale(${listScale})` }"
       />
-      <div class="slidev-list-badge">{{ route.no }} / {{ allSlides.length }}</div>
+      <div v-if="!print" class="slidev-list-badge">{{ route.no }} / {{ allSlides.length }}</div>
     </div>
   </div>
 </template>
@@ -58,6 +74,12 @@ const allSlides = computed(() =>
 html, body, #app {
   height: auto !important;
   overflow: auto !important;
+}
+@media print {
+  html.documd-slidev-print body { margin: 0 !important; }
+  html.documd-slidev-print .slidev-list-root { padding: 0; min-height: 0; overflow: visible; }
+  html.documd-slidev-print .slidev-list-item { margin: 0; border: 0; border-radius: 0; break-inside: avoid; }
+  html.documd-slidev-print .slidev-list-item:not(:last-child) { break-after: page; }
 }
 </style>
 

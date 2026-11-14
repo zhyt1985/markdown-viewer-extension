@@ -1,11 +1,10 @@
-import { openFile, openWorkspace, exportFile, cancelExport, openSettings, closeDialogs, selectNav, documentMenu } from './ui-helpers.js';
+import { launchDesktop, openFile, openWorkspace, exportFile, cancelExport, openSettings, closeDialogs, selectNav, documentMenu } from './ui-helpers.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { _electron } from 'playwright-core';
 import { getDocument } from '../node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -23,7 +22,7 @@ test('real editing, external changes and conflict-safe saves preserve user conte
   const long = Array.from({ length: 100 }, (_, i) => `## 段落 ${i}\r\n\r\n长文正文。\r\n\r\n`).join('');
   await fs.writeFile(a, '\uFEFF# 初始版本\r\n\r\n' + long); await fs.writeFile(b, '# B 原文');
   const packaged = process.env.MV_DESKTOP_EXECUTABLE;
-  const app = await _electron.launch({ executablePath: packaged || require('electron'),
+  const app = await launchDesktop({ executablePath: packaged || require('electron'),
     args: [`--user-data-dir=${path.join(temporary, 'profile')}`, ...(packaged ? [] : [path.join(root, 'dist/desktop/app')])],
     env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined }, timeout: 60000 });
   const page = await app.firstWindow(); await ready(page);
@@ -97,7 +96,8 @@ test('real editing, external changes and conflict-safe saves preserve user conte
       assert.equal(await page.locator('.tab-open', { hasText: 'A.md' }).count(), 0);
     });
     await t.test('canceling dirty tab, workspace and window closure retains the edit', async () => {
-      await page.locator('.tab-open', { hasText: 'B.md' }).click(); await ready(page); await edit('# B 未保存');
+      await page.locator('.tab-open', { hasText: 'B.md' }).click(); await ready(page);
+      await page.click('#edit-toggle'); await edit('# B 未保存');
       await page.locator('.document-tab', { has: page.locator('.tab-open[aria-selected="true"]') }).locator('.tab-close').click(); await ready(page);
       assert.equal(await page.locator('.document-tab').count(), 2);
       await page.locator('.workspace-close').click(); await ready(page);
@@ -146,7 +146,7 @@ test('real editing, external changes and conflict-safe saves preserve user conte
       const file = path.join(selected, 'X.md'); await fs.writeFile(file, '# selected');
       const target = path.join(outside, 'X.md'); await fs.writeFile(target, '# untouched outside');
       await app.evaluate(({ dialog }, filePath) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] }); }, file);
-      await openFile(page); await ready(page); await edit('# draft survives replacement');
+      await openFile(page); await ready(page); await page.click('#edit-toggle'); await edit('# draft survives replacement');
       await fs.rename(selected, path.join(temporary, 'selected-moved'));
       await fs.symlink(outside, selected, process.platform === 'win32' ? 'junction' : 'dir');
       await page.click('#save'); await ready(page);
@@ -158,7 +158,7 @@ test('real editing, external changes and conflict-safe saves preserve user conte
       assert.equal(await fs.readFile(recovery, 'utf8'), '# draft survives replacement');
     });
     await t.test('an invalid UTF-8 selection leaves the active document and registered tabs intact', async () => {
-      const invalid = path.join(temporary, '不支持的编码.md'); await fs.writeFile(invalid, Buffer.from([0xff, 0xfe]));
+      const invalid = path.join(temporary, '不支持的编码.md'); await fs.writeFile(invalid, Buffer.from([0xff]));
       const before = await page.evaluate('window.desktop.session()');
       await app.evaluate(({ dialog }, filePath) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] }); }, invalid);
       await openFile(page); await ready(page);
@@ -167,6 +167,62 @@ test('real editing, external changes and conflict-safe saves preserve user conte
       assert.equal(after.selected.documentId, before.selected.documentId);
       assert.deepEqual(after.tabs, before.tabs);
       assert.equal(await page.evaluate('window.desktopCodeEditor.getText()'), '# draft survives replacement');
+    });
+    await t.test('encoding recovery preserves legacy bytes and converts unrepresentable edits to a UTF-8 copy', async () => {
+      const unicode = path.join(temporary, 'Unicode.md');
+      const legacy = path.join(temporary, '旧编码.md');
+      const copy = path.join(temporary, 'UTF-8 副本.md');
+      const iconv = require('iconv-lite');
+      const chooseOpen = filePath => app.evaluate(({ dialog }, filePath) => {
+        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] });
+      }, filePath);
+      await fs.writeFile(unicode, Buffer.from('\uFEFF# 自动识别\r\n', 'utf16le'));
+      await chooseOpen(unicode);
+      await openFile(page);
+      await heading(page, '自动识别');
+      assert.equal(await page.locator('.shell-encoding').innerText(), 'UTF-16LE');
+
+      await fs.writeFile(legacy, iconv.encode('# 旧文档\r\n', 'gbk'));
+      await chooseOpen(legacy);
+      const openWithEncoding = async encoding => {
+        await page.click('[data-shell-action="file-menu"]');
+        await page.click('#open-with-encoding');
+        await page.selectOption('#open-encoding', encoding);
+        await page.click('[form="encoding-form"]');
+        await ready(page);
+      };
+      await openWithEncoding('gbk');
+      await heading(page, '旧文档');
+      assert.equal(await page.locator('.shell-encoding').innerText(), 'GBK');
+      const legacyTab = page.locator('.document-tab', { hasText: '旧编码.md' });
+      await legacyTab.locator('.tab-close').click();
+      await ready(page);
+      await selectNav(page, 'recent');
+      await page.locator('.recent-open', { hasText: '旧编码.md' }).click();
+      await heading(page, '旧文档');
+      assert.equal(await page.locator('.shell-encoding').innerText(), 'GBK');
+      await page.locator('[data-shell-mode="split"]').click();
+      await edit('# 可保存\n');
+      await page.click('#save');
+      await heading(page, '可保存');
+      const saved = iconv.encode('# 可保存\r\n', 'gbk');
+      assert.deepEqual(await fs.readFile(legacy), saved);
+      await edit('# 新文档 😀\n');
+      assert.match(await page.locator('#file-status').innerText(), /无法无损保存/);
+      await openWithEncoding('utf-8');
+      assert.match(await page.locator('#status').innerText(), /未保存的修改/);
+      assert.equal(await page.evaluate('window.desktopCodeEditor.getText()'), '# 新文档 😀\n');
+      await page.click('#save');
+      await ready(page);
+      assert.match(await page.locator('#status').innerText(), /无法无损保存/);
+      assert.deepEqual(await fs.readFile(legacy), saved);
+      await chooseSave(copy);
+      await page.click('[data-shell-action="file-menu"]');
+      await page.click('#save-as-utf8');
+      await heading(page, '新文档 😀');
+      assert.equal(await page.locator('.shell-encoding').innerText(), 'UTF-8');
+      assert.equal(await fs.readFile(copy, 'utf8'), '# 新文档 😀\r\n');
+      assert.deepEqual(await fs.readFile(legacy), saved);
     });
   } finally {
     await chooseDiscard(1);

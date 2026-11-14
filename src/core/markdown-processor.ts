@@ -240,6 +240,8 @@ export function processTablesForWordCompatibility(html: string, layout: 'left' |
 export interface AsyncTaskManagerOptions {
   /** Callback triggered when abort() is called, for cleanup of downstream resources */
   onAbort?: () => void;
+  /** Maximum callbacks in flight for a host with a bounded render queue. */
+  maxConcurrentTasks?: number;
 }
 
 export class AsyncTaskManager {
@@ -249,10 +251,13 @@ export class AsyncTaskManager {
   private aborted = false;
   private context: TaskContext;
   private onAbort?: () => void;
+  private maxConcurrentTasks: number;
 
   constructor(translate: TranslateFunction = (key) => key, options?: AsyncTaskManagerOptions) {
     this.translate = translate;
     this.onAbort = options?.onAbort;
+    const limit = options?.maxConcurrentTasks;
+    this.maxConcurrentTasks = typeof limit === 'number' && Number.isSafeInteger(limit) && limit > 0 ? limit : Infinity;
     // Create a unique context object for this manager instance
     // Tasks will reference this context to check cancellation
     this.context = { cancelled: false };
@@ -516,7 +521,11 @@ export class AsyncTaskManager {
       }
     };
 
-    await Promise.all(tasks.map(processTask));
+    let next = 0;
+    const processLane = async () => {
+      while (next < tasks.length && !tasks[next].context.cancelled) await processTask(tasks[next++]);
+    };
+    await Promise.all(Array.from({ length: Math.min(totalTasks, this.maxConcurrentTasks) }, processLane));
     return !this.aborted;
   }
 

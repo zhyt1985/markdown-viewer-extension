@@ -6,6 +6,16 @@ import { bracketMatching, defaultHighlightStyle, HighlightStyle, foldGutter, fol
 import { openSearchPanel, search, searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 
 const editable = new Compartment();
+const editorLanguage = new Compartment();
+const chinesePhrases = {'Find':'查找','Search':'查找','Replace':'替换','next':'下一个','previous':'上一个','all':'全部',
+  'match case':'区分大小写','regexp':'正则表达式','by word':'整词','replace':'替换','replace all':'全部替换','close':'关闭',
+  'Fold line':'折叠行','Unfold line':'展开行','to':'到','Go to line':'转到行','go':'前往'};
+function localizedEditorUi() {
+  return [
+    EditorState.phrases.of(globalThis.platform?.i18n.getUILanguage() === 'zh_CN' ? chinesePhrases : {}),
+    EditorView.contentAttributes.of({'aria-label':window.desktopViewer.ui('Markdown 源码'),'aria-multiline':'true',spellcheck:'false'}),
+  ];
+}
 const states = new Map<string,{state:EditorState;scrollTop:number}>();
 let selected: string | null = null;
 let disabled = true, switching = false;
@@ -24,11 +34,8 @@ function createState(text:string) {
     history({minDepth:100}),foldGutter(),indentOnInput(),bracketMatching(),syntaxHighlighting(highlightStyle),markdown(),
     EditorView.lineWrapping,search({top:true}),highlightSelectionMatches(),
     keymap.of([{key:'Mod-h',run:openSearchPanel},...searchKeymap,...historyKeymap,...defaultKeymap,...foldKeymap,indentWithTab]),
-    EditorState.phrases.of({'Find':'查找','Search':'查找','Replace':'替换','next':'下一个','previous':'上一个','all':'全部',
-      'match case':'区分大小写','regexp':'正则表达式','by word':'整词','replace':'替换','replace all':'全部替换','close':'关闭',
-      'Fold line':'折叠行','Unfold line':'展开行','to':'到','Go to line':'转到行','go':'前往'}),
+    editorLanguage.of(localizedEditorUi()),
     editable.of([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)]),
-    EditorView.contentAttributes.of({'aria-label':'Markdown 源码','aria-multiline':'true',spellcheck:'false'}),
     EditorView.updateListener.of(update=>{
       if(update.docChanged)documentRevision++;
       if(!switching&&update.docChanged)document.dispatchEvent(new Event('desktop:editor-input'));
@@ -104,12 +111,24 @@ const controller = {
       view.setState(previous?.state.doc.toString()===normalized?previous.state:createState(normalized));
       view.contentDOM.id='markdown-editor';
       // A stored state may have been captured while another operation was busy.
-      view.dispatch({effects:editable.reconfigure([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)])});
+      view.dispatch({effects:[
+        editable.reconfigure([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)]),
+        editorLanguage.reconfigure(localizedEditorUi()),
+      ]});
       const top=previous?.state.doc.toString()===normalized?previous.scrollTop:0;
       view.requestMeasure({read:()=>top,write:value=>{view.scrollDOM.scrollTop=value;}});
     } finally {switching=false;notify();}
   },
-  clear(){switching=true;try{selected=null;documentRevision++;view.setState(createState(''));view.contentDOM.id='markdown-editor';}finally{switching=false;notify();}},
+  clear(preserve = false) {
+    if (preserve && selected) states.set(selected, { state: view.state, scrollTop: view.scrollDOM.scrollTop });
+    switching = true;
+    try {
+      selected = null;
+      documentRevision++;
+      view.setState(createState(''));
+      view.contentDOM.id = 'markdown-editor';
+    } finally { switching = false; notify(); }
+  },
   retain(ids:string[]){for(const id of states.keys())if(!ids.includes(id))states.delete(id);},
 };
 declare global { interface Window { desktopCodeEditor:typeof controller; } }
@@ -129,5 +148,10 @@ function buttons(){
 }
 document.addEventListener('desktop:editor-history',buttons);
 document.addEventListener('desktop:changed',buttons);
+document.addEventListener('desktop:locale-changed', () => {
+  const scrollTop = view.scrollDOM.scrollTop;
+  view.dispatch({effects:editorLanguage.reconfigure(localizedEditorUi())});
+  view.requestMeasure({read:()=>scrollTop,write:value=>{view.scrollDOM.scrollTop=value;}});
+});
 buttons();
 window.addEventListener('unload',()=>view.destroy());

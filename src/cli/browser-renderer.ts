@@ -1,3 +1,4 @@
+import { documentAssets } from '../exporters/document-assets';
 import mermaid from 'mermaid';
 
 import { exportToHtml } from '../exporters/html-exporter';
@@ -7,7 +8,7 @@ import { renderMarkdownDocument, resetDocument } from '../core/viewer/viewer-con
 import { mountOpenapiDocument } from '../core/viewer/openapi-view';
 import { isOpenapiFile } from '../utils/openapi';
 import { clearRenderDiagnostics, getRenderDiagnostics, type RenderDiagnostic } from '../core/render-diagnostics';
-import { clearDiagramExports, getDiagramExport } from '../ui/diagram-export-registry';
+import { clearDiagramExports } from '../ui/diagram-export-registry';
 import { handleRender, initRenderEnvironment } from '../renderers/render-worker-core';
 import { loadAndApplyTheme } from '../utils/theme-to-css';
 import type { DocumentService, PlatformAPI } from '../types/platform';
@@ -697,36 +698,6 @@ async function readImageBytes(src: string): Promise<{ base64: string; contentTyp
   return { base64: bytesToBase64(bytes), contentType };
 }
 
-/** Markdown line of a rendered element (placeholders and images carry it). */
-function sourceLineOf(element: HTMLElement | null): number | null {
-  const line = Number(element?.dataset?.sourceLine);
-  return Number.isFinite(line) && line > 0 ? line : null;
-}
-
-/**
- * Document line of a plain image.
- *
- * Unlike plugin placeholders (whose reports already add the block offset),
- * image attributes come straight from the remark AST of a block that was
- * parsed on its own — so the block's own `data-line` has to be added back to
- * name the real line of the document.
- */
-function imageDocumentLine(image: HTMLImageElement): number | null {
-  const relative = sourceLineOf(image);
-  if (relative === null) {
-    return null;
-  }
-  const blockStart = Number(image.closest('[data-line]')?.getAttribute('data-line'));
-  return Number.isFinite(blockStart) && blockStart >= 0 ? blockStart + relative : relative;
-}
-
-function renderedSize(image: HTMLImageElement | null): { width: number | null; height: number | null } {
-  if (!image || !image.naturalWidth) {
-    return { width: null, height: null };
-  }
-  return { width: image.naturalWidth, height: image.naturalHeight };
-}
-
 function requestedKinds(request: CliAssetRequest): Set<'diagram' | 'image'> {
   const kinds = request.kinds && request.kinds.length > 0 ? request.kinds : (['diagram', 'image'] as const);
   return new Set<'diagram' | 'image'>(kinds);
@@ -752,114 +723,31 @@ async function collectAssets(request: CliAssetRequest): Promise<CliAssetsResult>
 
   const kinds = requestedKinds(request);
   const diagramFormat = request.diagramFormat === 'svg' ? 'svg' : 'png';
-  // Reasons of the failures this render reported, by block: the error block in
-  // the document carries a localized message, while the diagnostic carries the
-  // engine's own reason. The report prefers the diagnostic, so a failure reads
-  // as a cause instead of a placeholder phrase.
-  const diagnosticReasons = new Map<string, string>();
-  for (const diagnostic of getRenderDiagnostics()) {
-    if (diagnostic.level === 'error' && diagnostic.blockId && diagnostic.message) {
-      diagnosticReasons.set(diagnostic.blockId, diagnostic.message);
-    }
-  }
-  const nodes = Array.from(
-    content.querySelectorAll<HTMLElement>('.diagram-block, img, .mv-plugin-error, .async-placeholder'),
-  );
   const assets: CliAssetEntry[] = [];
-
-  for (const node of nodes) {
-    // The <img> inside a rendered block is that block's payload, not an asset
-    // of its own; only the block element counts.
-    if (node instanceof HTMLImageElement && node.closest('.diagram-block')) {
-      continue;
-    }
-
-    const isPlaceholder = node.classList.contains('async-placeholder');
-    const isErrorBlock = node.classList.contains('mv-plugin-error');
-    const isRenderedDiagram =
-      node.classList.contains('diagram-block') ||
-      (node instanceof HTMLImageElement && node.dataset.pluginRendered === 'true');
-
-    if (isPlaceholder || isErrorBlock || isRenderedDiagram) {
-      if (!kinds.has('diagram')) continue;
-      const image = node instanceof HTMLImageElement ? node : node.querySelector('img');
-      const type = node.dataset.pluginType || image?.dataset.pluginType || 'diagram';
-      const sourceHash = node.dataset.sourceHash || image?.dataset.sourceHash || '';
-      const blockId = node.id || node.dataset.blockId || null;
-      const entry: CliAssetEntry = {
-        index: 0,
-        kind: 'diagram',
-        type,
-        line: sourceLineOf(node),
-        blockId,
-        alt: image?.alt || '',
-        ...renderedSize(image),
-      };
-
-      if (isPlaceholder) {
-        entry.error = 'the block was never rendered';
-      } else if (isErrorBlock) {
-        entry.error =
-          (blockId && diagnosticReasons.get(blockId)) ||
-          (node.textContent || '').trim().replace(/\s+/g, ' ') ||
-          'the block failed to render';
-      } else if (diagramFormat === 'svg') {
-        const exported = sourceHash ? getDiagramExport(sourceHash) : undefined;
-        if (exported?.svg) {
-          entry.svg = exported.svg;
-          entry.type = exported.pluginType || type;
-        } else {
-          entry.error = `${type} produced no SVG; export with --format png instead`;
-        }
+  for (const { meta, image, vector } of documentAssets(content, getRenderDiagnostics(), kinds)) {
+    const entry: CliAssetEntry = { ...meta };
+    const src = image?.getAttribute('src') || '';
+    if (!entry.error && entry.kind === 'diagram') {
+      if (diagramFormat === 'svg') {
+        if (vector?.svg) { entry.svg = vector.svg; entry.type = vector.pluginType || entry.type; }
+        else entry.error = `${entry.type} produced no SVG; export with --format png instead`;
       } else {
-        const src = image?.getAttribute('src') || '';
         try {
-          if (!src.startsWith('data:')) {
-            throw new Error('the rendered figure carries no inline payload');
-          }
+          if (!src.startsWith('data:')) throw Error('the rendered figure carries no inline payload');
           entry.pngBase64 = decodeDataUrl(src).base64;
-        } catch (error) {
-          entry.error = error instanceof Error ? error.message : String(error);
-        }
+        } catch (error) { entry.error = error instanceof Error ? error.message : String(error); }
       }
-
-      assets.push(entry);
-      continue;
-    }
-
-    // A plain image: copied in its original format, never re-encoded.
-    if (!kinds.has('image')) continue;
-    const image = node as HTMLImageElement;
-    const src = image.getAttribute('src') || '';
-    const entry: CliAssetEntry = {
-      index: 0,
-      kind: 'image',
-      type: 'image',
-      line: imageDocumentLine(image),
-      blockId: null,
-      alt: image.alt || '',
-      src,
-      ...renderedSize(image),
-    };
-    try {
-      const bytes = await readImageBytes(src);
-      entry.imageBase64 = bytes.base64;
-      entry.contentType = bytes.contentType;
-      if (image.complete && image.naturalWidth === 0) {
-        entry.error = 'the image did not load in the rendered document';
-      }
-    } catch (error) {
-      entry.error = `unreadable: ${error instanceof Error ? error.message : String(error)}`;
+    } else if (entry.kind === 'image') {
+      entry.src = src;
+      try {
+        const bytes = await readImageBytes(src);
+        entry.imageBase64 = bytes.base64;
+        entry.contentType = bytes.contentType;
+        if (image?.complete && !image.naturalWidth) entry.error = 'the image did not load in the rendered document';
+      } catch (error) { entry.error = `unreadable: ${error instanceof Error ? error.message : String(error)}`; }
     }
     assets.push(entry);
   }
-
-  // Index in document order, so `documd --assets --only 2` names the same
-  // asset before and after a filter is applied.
-  assets.forEach((asset, position) => {
-    asset.index = position + 1;
-  });
-
   return { assets, diagnostics: getRenderDiagnostics() };
 }
 

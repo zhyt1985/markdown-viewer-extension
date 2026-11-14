@@ -5,7 +5,7 @@ import path from 'node:path';
 import {test} from 'node:test';
 import {parseLink,resolveLink} from '../src/local-navigation.cjs';
 test('local Markdown links decode once and remain inside their canonical grant',async()=>{
-  const folder=await fs.mkdtemp(path.join(os.tmpdir(),'documd-links-'));
+  const folder=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'documd-links-')));
   try{
     await fs.mkdir(path.join(folder,'root'));await fs.writeFile(path.join(folder,'outside.md'),'outside');
     const root=path.join(folder,'root'),target=path.join(root,'章节 #%.md');await fs.writeFile(target,'# chapter');

@@ -47,10 +47,12 @@ test('service envelopes enforce scope, preserve merged reading state and propaga
     await Promise.all([
       send('FILE_STATE_OPERATION', { operation: 'set', url: id, state: { scrollTop: 400 } }),
       send('FILE_STATE_OPERATION', { operation: 'set', url: id, state: { zoom: 1.5 } }),
+      send('FILE_STATE_OPERATION', { operation: 'set', url: id, state: { documentMode: 'split' } }),
     ]);
-    assert.deepEqual((await send('FILE_STATE_OPERATION', { operation: 'get', url: id })).data, { scrollTop: 400, zoom: 1.5 });
+    assert.deepEqual((await send('FILE_STATE_OPERATION', { operation: 'get', url: id })).data, { scrollTop: 400, zoom: 1.5, documentMode: 'split' });
     assert.equal((await send('FILE_STATE_OPERATION', { operation: 'get', url: 'b'.repeat(64) })).ok, false);
     assert.equal((await send('FILE_STATE_OPERATION', { operation: 'set', url: id, state: { scrollTop: -1 } })).ok, false);
+    assert.equal((await send('FILE_STATE_OPERATION', { operation: 'set', url: id, state: { documentMode: 'invalid' } })).ok, false);
     assert.equal((await send('STORAGE_GET', { keys: ['arbitrary'] })).ok, false);
     assert.equal((await send('STORAGE_SET', { items: { markdownViewerSettings: { firstLineIndent: -10 } } })).ok, false);
     assert.equal((await send('STORAGE_SET', { items: { markdownViewerSettings: { preferredLocale: '../bad' } } })).ok, false);

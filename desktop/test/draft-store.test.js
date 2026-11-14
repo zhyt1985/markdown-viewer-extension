@@ -9,7 +9,7 @@ const {createDraftStore,idFor}=require('../src/draft-store.cjs');
 const record=(root,name='A.md',markdown='草稿')=>({source:path.join(root,name),resourceRoot:root,documentId:idFor(path.join(root,name)),markdown,diskVersion:'a'.repeat(64),format:{bom:true,newline:'\r\n'}});
 
 test('untitled drafts persist without file paths and cannot smuggle a filesystem scope',async()=>{
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'documd-untitled-'));
+  const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'documd-untitled-')));
   try {
     const store=createDraftStore(root),draft={untitled:true,title:'未命名 1.md',documentId:'c'.repeat(64),source:null,resourceRoot:null,workspaceRoot:null,diskVersion:null,markdown:'',format:{bom:false,newline:'\n'}};
     await store.put(draft);const initial=await store.get(draft.documentId);assert.equal(initial.kind,'untitled');assert.equal(initial.source,null);assert.equal(initial.markdown,'');
@@ -22,7 +22,7 @@ test('untitled drafts persist without file paths and cannot smuggle a filesystem
 });
 
 test('draft acknowledgements survive reopening, serialize edits and explicitly remove only selected drafts',async()=>{
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'documd-drafts-'));
+  const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'documd-drafts-')));
   try {
     const store=createDraftStore(root); const first=record(root);
     await Promise.all([store.put(first),store.put({...first,markdown:'最后一次修改'})]);
@@ -35,7 +35,7 @@ test('draft acknowledgements survive reopening, serialize edits and explicitly r
   } finally {await fs.rm(root,{recursive:true,force:true});}
 });
 test('corrupt drafts remain on disk; quota and invalid identities cannot replace the last durable draft',async()=>{
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'documd-drafts-'));
+  const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'documd-drafts-')));
   try {
     const store=createDraftStore(root,{maxItems:1,maxBytes:1500}), first=record(root);
     await store.put(first);

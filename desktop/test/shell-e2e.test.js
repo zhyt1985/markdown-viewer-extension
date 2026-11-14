@@ -4,8 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { _electron } from 'playwright-core';
-import { openFile, openSettings, closeDialogs, selectNav } from './ui-helpers.js';
+import { launchDesktop, openFile, openSettings, closeDialogs, selectNav } from './ui-helpers.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require = createRequire(new URL('../package.json',import.meta.url));
 const manifest = JSON.parse(await fs.readFile(path.join(root,'desktop/app-manifest.json'),'utf8'));
@@ -15,7 +14,7 @@ test('formal Alpha identity, approved shell, keyboard and independent appearance
   const file = path.join(folder,'正式界面 验证.md');
   await fs.writeFile(file,'# 正式界面验证\n\n这是明确标记的自动化测试文档。\n\n'+Array.from({length:80},(_,i)=>`## 章节 ${i+1}\n\n用于验证独立滚动、目录和界面外观。\n\n`).join(''));
   const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app = await _electron.launch({ executablePath:packaged || require('electron'), args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])], env:{...process.env,ELECTRON_RUN_AS_NODE:undefined}, timeout:60000 });
+  const app = await launchDesktop({ executablePath:packaged || require('electron'), args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])], env:{...process.env,ELECTRON_RUN_AS_NODE:undefined}, timeout:60000 });
   try {
     const page=await app.firstWindow(); const errors=[]; page.on('pageerror',error=>errors.push(error.message));
     const ready=()=>page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);

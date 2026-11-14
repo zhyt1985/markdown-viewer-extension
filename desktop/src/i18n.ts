@@ -1,8 +1,10 @@
 import { BaseI18nService, type LocaleMessages } from '../../src/services/base-i18n-service';
+import { resolveDesktopLocale } from './desktop-locale';
 
 export class DesktopI18n extends BaseI18nService {
   locales: Array<{ code: string; name: string }> = [];
   private effective = 'en';
+  systemLocale = navigator.language;
   async init() {
     const response = await fetch(new URL('_locales/registry.json', `${location.origin}/assets/`));
     if (!response.ok) throw Error('Locale registry unavailable');
@@ -18,12 +20,8 @@ export class DesktopI18n extends BaseI18nService {
   async loadLocale(locale: string) { this.messages = await this.fetchLocaleData(locale); }
   async setLocale(locale: string) {
     if (!this.locales.length) await this.init();
-    let resolved = locale;
-    if (locale === 'auto') {
-      const system = navigator.language.replace('-', '_');
-      resolved = this.locales.find(item => item.code.toLowerCase() === system.toLowerCase())?.code
-        || (system.startsWith('zh') ? (/(TW|HK|Hant)/i.test(system) ? 'zh_TW' : 'zh_CN') : this.locales.find(item => item.code === system.split('_')[0])?.code) || 'en';
-    }
+    const resolved = resolveDesktopLocale(locale, this.systemLocale);
+    if (this.ready && resolved === this.effective) { this.locale = locale; return; }
     await this.loadLocale(resolved);
     this.locale = locale; this.effective = resolved; this.ready = true;
   }

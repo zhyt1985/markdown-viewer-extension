@@ -16,13 +16,13 @@ async function validatePath(root, source, missing = false) {
     if (!samePath(actual, source) || (await fs.lstat(source)).isSymbolicLink()) throw Error('Source file was replaced by a link');
   } catch (error) { if (!missing || error.code !== 'ENOENT') throw error; }
 }
-async function readBytes(root, source) {
+async function readDocumentBytes(root, source) {
   await validatePath(root, source);
   const file = await fs.open(source, 'r');
   let bytes; let stat;
   try {
     stat = await file.stat({ bigint: true });
-    if (!stat.isFile() || stat.size > BigInt(MAX_BYTES)) throw Error('Markdown files must be at most 10 MiB');
+    if (!stat.isFile() || stat.size > BigInt(MAX_BYTES)) throw Error('Document files must be at most 10 MiB');
     const chunks = []; let size = 0;
     while (size <= MAX_BYTES) {
       const chunk = Buffer.alloc(Math.min(65536, MAX_BYTES + 1 - size));
@@ -30,7 +30,7 @@ async function readBytes(root, source) {
       if (!bytesRead) break;
       chunks.push(chunk.subarray(0, bytesRead)); size += bytesRead;
     }
-    if (size > MAX_BYTES) throw Error('Markdown files must be at most 10 MiB');
+    if (size > MAX_BYTES) throw Error('Document files must be at most 10 MiB');
     bytes = Buffer.concat(chunks, size);
     if (stamp(stat) !== stamp(await file.stat({ bigint: true }))) throw Error('Document changed while reading; retry');
   } finally { await file.close(); }
@@ -38,10 +38,10 @@ async function readBytes(root, source) {
   return {bytes,diskVersion:version(bytes),diskStamp:stamp(stat),mode:Number(stat.mode)};
 }
 async function readDocument(root,source,encoding='auto') {
-  const {bytes,...metadata}=await readBytes(root,source);return {...metadata,...decode(bytes,encoding)};
+  const {bytes,...metadata}=await readDocumentBytes(root,source);return {...metadata,...decode(bytes,encoding)};
 }
 async function readDocumentVersion(root,source) {
-  const {bytes,...metadata}=await readBytes(root,source);return metadata;
+  const {bytes,...metadata}=await readDocumentBytes(root,source);return metadata;
 }
 async function writeDocument({ root, source, markdown, format, expectedVersion }) {
   const bytes = encode(markdown, format);
@@ -67,4 +67,4 @@ async function writeDocument({ root, source, markdown, format, expectedVersion }
     return await readDocument(root, source,format.encoding||'utf-8');
   } finally { await fs.rm(temporary, { force: true }).catch(() => {}); }
 }
-module.exports = { readDocument, readDocumentVersion, writeDocument, encode, stamp };
+module.exports = { readDocument, readDocumentBytes, readDocumentVersion, writeDocument, encode, stamp };

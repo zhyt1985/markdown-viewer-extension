@@ -4,8 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
-import {openFile,openSettings,closeDialogs} from './ui-helpers.js';
+import { launchDesktop,openFile,openSettings,closeDialogs} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
 test('bilingual reading fonts persist and full-resolution diagram preview zooms without changing the document',{timeout:150000},async t=>{
@@ -14,7 +13,7 @@ test('bilingual reading fonts persist and full-resolution diagram preview zooms 
   const label='Wide diagram label for readable full resolution zoom with original SVG detail';
   const markdown='# 中英文阅读与图表\n\n中文阅读示例，字体清晰易读。\n\nEnglish reading example. ABC 0123456789.\n\n`const value = 123;`\n\n```mermaid\ngraph LR\n'+['A','B','C','D'].map(id=>`${id}[${label}]`).join(' --> ')+'\n```\n\n## 后续内容\n\n正文继续保留。';
   await fs.writeFile(file,markdown);const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-  const app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+  const app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${path.join(folder,'profile')}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
   const page=await app.firstWindow(),errors=[];page.on('pageerror',error=>errors.push(error.message));
   const ready=()=>page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);
   const cdp=await page.context().newCDPSession(page);await cdp.send('DOM.enable');await cdp.send('CSS.enable');
@@ -26,8 +25,10 @@ test('bilingual reading fonts persist and full-resolution diagram preview zooms 
     await t.test('default uses clear Chinese sans-serif and independent Latin and code faces',async()=>{
       const chinese=await actualFonts('#markdown-content > .md-block:nth-child(2) p');
       const english=await actualFonts('#markdown-content > .md-block:nth-child(3) p');
-      assert.ok(chinese.some(name=>/Microsoft YaHei/i.test(name)),JSON.stringify(chinese));
-      assert.ok(english.some(name=>/Segoe UI/i.test(name)),JSON.stringify(english));
+      const cjkDefault = process.platform === 'win32' ? /Microsoft YaHei/i : /Microsoft YaHei|PingFang|Noto Sans|Source Han Sans/i;
+      const latinDefault = process.platform === 'win32' ? /Segoe UI/i : /Segoe UI|Arial|DejaVu Sans|Liberation Sans|Noto Sans/i;
+      assert.ok(chinese.some(name=>cjkDefault.test(name)),JSON.stringify(chinese));
+      assert.ok(english.some(name=>latinDefault.test(name)),JSON.stringify(english));
       assert.equal(await page.locator('#markdown-content').evaluate(node=>getComputedStyle(node).fontSize),'16px');
       await page.screenshot({path:path.join(artifacts,'reading-default.png'),scale:'css'});
     });
@@ -53,7 +54,7 @@ test('bilingual reading fonts persist and full-resolution diagram preview zooms 
       assert.equal(await page.locator('#markdown-content').evaluate(node=>getComputedStyle(node).fontSize),'16px');
     });
     await t.test('opens original SVG, zooms by buttons and wheel, pans and restores focus on Escape',async()=>{
-      const button=page.locator('.desktop-diagram-open').first();await button.click();await page.waitForFunction(()=>document.getElementById('diagram-detail').naturalWidth>0);
+      const button=page.locator('.desktop-diagram-open').first();await button.click();await page.waitForFunction(()=>/^\d+%$/.test(document.getElementById('diagram-zoom').textContent));
       assert.equal(await page.locator('#diagram-dialog').isVisible(),true);
       const fits=await page.evaluate(()=>{const a=document.getElementById('diagram-detail').getBoundingClientRect(),b=document.getElementById('diagram-viewport').getBoundingClientRect();return a.left>=b.left-1&&a.top>=b.top-1&&a.right<=b.right+1&&a.bottom<=b.bottom+1;});assert.equal(fits,true);
       const source=await page.locator('#diagram-detail').getAttribute('src');
@@ -68,7 +69,8 @@ test('bilingual reading fonts persist and full-resolution diagram preview zooms 
       assert.notEqual(await page.locator('#diagram-detail').getAttribute('style'),before);
       await page.screenshot({path:path.join(artifacts,'diagram-zoom.png'),scale:'css'});
       await page.keyboard.press('0');await page.keyboard.press('Escape');assert.equal(await page.locator('#diagram-dialog').isVisible(),false);
-      await page.waitForFunction(()=>document.activeElement.classList.contains('desktop-diagram-open'));
+      await page.waitForFunction(()=>!document.getElementById('diagram-detail').hasAttribute('src')
+        && document.activeElement.classList.contains('desktop-diagram-open'));
       assert.equal(await page.evaluate(()=>document.activeElement.classList.contains('desktop-diagram-open')),true);
       assert.equal(await page.evaluate(async url=>{try{await fetch(url);return false;}catch{return true;}},source),true);
     });

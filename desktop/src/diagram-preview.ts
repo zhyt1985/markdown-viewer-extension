@@ -1,3 +1,5 @@
+import { bindUi, bindUiAttribute, ui } from './desktop-ui';
+
 function intrinsicSVG(source:string) {
   const parsed=new DOMParser().parseFromString(source,'image/svg+xml'),svg=parsed.documentElement;
   if(svg.localName!=='svg')return source;
@@ -9,7 +11,7 @@ function intrinsicSVG(source:string) {
   }
   return new XMLSerializer().serializeToString(svg);
 }
-export function setupDiagramPreview(container:HTMLElement,resolve:(image:HTMLImageElement)=>{source:string;vector:boolean}) {
+export function setupDiagramPreview(containers:HTMLElement[],resolve:(image:HTMLImageElement)=>{source:string;vector:boolean}) {
   const dialog=document.getElementById('diagram-dialog') as HTMLDialogElement;
   const viewport=document.getElementById('diagram-viewport')!;
   const image=document.getElementById('diagram-detail') as HTMLImageElement;
@@ -57,30 +59,39 @@ export function setupDiagramPreview(container:HTMLElement,resolve:(image:HTMLIma
     else if(event.key.startsWith('Arrow')){event.preventDefault();panX+=event.key==='ArrowLeft'?60:event.key==='ArrowRight'?-60:0;panY+=event.key==='ArrowUp'?60:event.key==='ArrowDown'?-60:0;fitted=false;paint();}
   });
   new ResizeObserver(()=>{if(dialog.open&&fitted)fit();}).observe(viewport);
-  container.addEventListener('click',event=>{
+  function openPreview(event: MouseEvent) {
     const target=event.target as HTMLElement,block=target.closest('.diagram-block');
     if(!block||(!target.matches('img')&&!target.closest('.desktop-diagram-open')))return;
     const source=block.querySelector('img');if(!source)return;
     event.preventDefault();event.stopPropagation();close();
     opener=target.closest('button') as HTMLElement||block.querySelector('.desktop-diagram-open');
+    const isImage = block.classList.contains('desktop-image-file');
+    bindUi(document.getElementById('diagram-title')!, isImage ? '图片预览' : '图表预览');
+    bindUiAttribute(document.getElementById('diagram-zoom-in')!, 'aria-label', isImage ? '放大图片' : '放大图表');
+    bindUiAttribute(document.getElementById('diagram-zoom-out')!, 'aria-label', isImage ? '缩小图片' : '缩小图表');
+    bindUiAttribute(document.getElementById('diagram-close')!, 'aria-label', isImage ? '关闭图片预览' : '关闭图表预览');
+    bindUiAttribute(viewport, 'aria-label', isImage ? '图片视图，可滚轮缩放和拖动' : '图表视图，可滚轮缩放和拖动');
     const asset=resolve(source);ownedURL=asset.vector?URL.createObjectURL(new Blob([intrinsicSVG(asset.source)],{type:'image/svg+xml'})):null;
-    status.textContent=asset.vector?'矢量图 · 可放大查看细节':'原始清晰度图像';
-    image.alt=source.alt||'图表';image.style.opacity='0';label.textContent='加载中…';
+    bindUi(status, asset.vector ? "矢量图 · 可放大查看细节" : "原始清晰度图像");
+    image.alt=source.alt||ui("图表");image.style.opacity='0';bindUi(label, "加载中…");
     image.onload=()=>{
       if(!dialog.open)return;
       image.style.width=`${image.naturalWidth}px`;image.style.height=`${image.naturalHeight}px`;
       image.style.opacity='1';fit();
     };
-    image.onerror=()=>{status.textContent='图表加载失败，请关闭后重试。';};
+    image.onerror=()=>{bindUi(status, isImage ? "图片无法加载：{0}" : "图表加载失败，请关闭后重试。", source.alt);};
     image.src=ownedURL||asset.source;dialog.showModal();document.getElementById('diagram-close')!.focus();
-  });
+  }
+  for (const container of containers) container.addEventListener('click', openPreview);
   return {
     close,
     decorate(){
-      for(const block of container.querySelectorAll<HTMLElement>('.diagram-block')){
+      const blocks = containers.flatMap(container => Array.from(container.querySelectorAll<HTMLElement>('.diagram-block')));
+      for(const block of blocks){
         const source=block.querySelector('img');if(!source||block.querySelector('.desktop-diagram-open'))continue;
-        source.title='点击放大查看图表';source.classList.add('desktop-zoomable');
-        const button=document.createElement('button');button.type='button';button.className='desktop-diagram-open shell-ui';button.textContent='放大查看';button.setAttribute('aria-label','放大查看图表');block.append(button);
+        const isImage = block.classList.contains('desktop-image-file');
+        bindUiAttribute(source, "title", isImage ? "点击放大查看图片" : "点击放大查看图表");source.classList.add('desktop-zoomable');
+        const button=document.createElement('button');button.type='button';button.className='desktop-diagram-open shell-ui';bindUi(button, "放大查看");bindUiAttribute(button, 'aria-label', isImage ? "放大查看图片" : "放大查看图表");block.append(button);
       }
     },
   };

@@ -4,6 +4,8 @@
  */
 
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
 import { after, before, describe, it } from 'node:test';
 import path from 'node:path';
 import JSZip from 'jszip';
@@ -79,5 +81,19 @@ describe('DOCX export contract (real pipeline)', () => {
     assert.match(warning.text, /mermaid/, 'the warning must name the diagram type');
     assert.match(warning.text, /line 3/, 'the warning must name the real document line');
     assert.ok(!/at [A-Za-z]/.test(warning.text), 'the warning must not include a stack trace');
+  });
+
+  it('keeps the default wiki-link rewrite in both CLI rendering and DOCX', async () => {
+    const folder = await fs.mkdtemp(path.join(os.tmpdir(), 'documd-wiki-contract-'));
+    try {
+      const input = path.join(folder, 'wiki.md');
+      await fs.writeFile(input, 'See [[another-note|Related note]].\n');
+      const html = await harness.renderHtml(input, FIXED_PARAMS);
+      assert.match(html, /href="[^"]*another-note\.md"[^>]*>Related note<\/a>/);
+      const { base64 } = await harness.renderDocx(input, FIXED_PARAMS);
+      const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
+      assert.match(await zip.files['word/document.xml'].async('string'), /<w:hyperlink[\s\S]*Related note/);
+      assert.match(await zip.files['word/_rels/document.xml.rels'].async('string'), /another-note\.md/);
+    } finally { await fs.rm(folder, { recursive: true, force: true }); }
   });
 });

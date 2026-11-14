@@ -12,7 +12,7 @@ test('checked writes preserve BOM/CRLF and refuse conflicts, deletion, invalid U
     const root = await fs.realpath(temporary); const source = path.join(root, '中文.md');
     await fs.writeFile(source, '\uFEFF# 原文\r\n\r\n正文\r\n');
     const initial = await readDocument(root, source);
-    assert.deepEqual(initial.format, { bom: true, newline: '\r\n' });
+    assert.deepEqual(initial.format, { bom: true, newline: '\r\n', encoding: 'utf-8' });
     const saved = await writeDocument({ root, source, markdown: '# 编辑\n\n第二行\n', format: initial.format, expectedVersion: initial.diskVersion });
     assert.equal(await fs.readFile(source, 'utf8'), '\uFEFF# 编辑\r\n\r\n第二行\r\n');
     await fs.writeFile(source, '# 外部修改');
@@ -20,7 +20,8 @@ test('checked writes preserve BOM/CRLF and refuse conflicts, deletion, invalid U
     assert.equal(await fs.readFile(source, 'utf8'), '# 外部修改');
     await fs.rm(source);
     await assert.rejects(writeDocument({ root, source, markdown: '# 不应重建', format: initial.format, expectedVersion: saved.diskVersion }), /SAVE_CONFLICT/);
-    await fs.writeFile(source, Buffer.from([0xff, 0xfe])); await assert.rejects(readDocument(root, source), /UTF-8/);
+    await fs.writeFile(source, Buffer.from([0xff]));
+    await assert.rejects(readDocument(root, source), { code: 'ENCODING_REQUIRED' });
     const outside = path.join(root, 'other'); await fs.mkdir(outside); await fs.writeFile(path.join(outside, 'real.md'), '# target');
     await fs.rm(source); const linked = path.join(root, 'linked');
     await fs.symlink(outside, linked, process.platform === 'win32' ? 'junction' : 'dir');

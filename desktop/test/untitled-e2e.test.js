@@ -4,9 +4,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {test} from 'node:test';
-import {_electron} from 'playwright-core';
 import {unzipSync} from 'fflate';
-import {closeDialogs,openFile,exportFile} from './ui-helpers.js';
+import { launchDesktop,closeDialogs,openFile,exportFile} from './ui-helpers.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const require=createRequire(new URL('../package.json',import.meta.url));
 test('new untitled documents survive restarts and become real files without losing editor state',{timeout:180000},async t=>{
@@ -17,7 +16,7 @@ test('new untitled documents survive restarts and become real files without losi
   const ready=()=>page.waitForFunction(()=>Boolean(window.desktopShell)&&!document.getElementById('open').disabled);
   const current=()=>page.evaluate('window.desktopApp.state().document');
   const settled=()=>page.waitForFunction(()=>window.desktopApp.state().preview.current,null,{timeout:20000});
-  const edit=async text=>{await page.locator('#markdown-editor').focus();await page.keyboard.press('Control+a');await page.keyboard.insertText(text);await page.waitForFunction(value=>window.desktopCodeEditor.getText()===value,text);await page.evaluate('window.desktopEditor.flush()');};
+  const edit=async text=>{await page.locator('#markdown-editor').focus();await page.keyboard.press('ControlOrMeta+a');await page.keyboard.insertText(text);await page.waitForFunction(value=>window.desktopCodeEditor.getText()===value,text);await page.evaluate('window.desktopEditor.flush()');};
   const create=async()=>{await closeDialogs(page);await page.keyboard.press('Control+n');await ready();return current();};
   const chooseSave=filePath=>app.evaluate(({dialog},filePath)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath});},filePath);
   const save=async()=>{await page.click('#save');await ready();};
@@ -26,7 +25,7 @@ test('new untitled documents survive restarts and become real files without losi
   const crash=async()=>{const exited=app.waitForEvent('close');await app.evaluate(({app})=>app.exit(0)).catch(()=>{});await exited;app=null;};
   const launch=async()=>{
     const packaged=process.env.MV_DESKTOP_EXECUTABLE;
-    app=await _electron.launch({executablePath:packaged||require('electron'),args:[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
+    app=await launchDesktop({executablePath:packaged||require('electron'),args:[`--user-data-dir=${profile}`,...(packaged?[]:[path.join(root,'dist/desktop/app')])],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined},timeout:60000});
     page=await app.firstWindow();await ready();await discard(0);
   };
   try {

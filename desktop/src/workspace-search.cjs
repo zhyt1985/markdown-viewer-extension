@@ -3,25 +3,35 @@ const path = require('node:path');
 const { within } = require('./resource-policy.cjs');
 
 // Bounded literal search. Every directory/file is revalidated; links are skipped.
-async function searchWorkspace(workspaces, id, query, mode, signal, limits = {}) {
+async function searchWorkspace(workspaces, id, query, mode, signal, limits = {}, onProgress = () => {}) {
   if (typeof query !== 'string' || !query.trim() || query.length > 256 || !['filename', 'content'].includes(mode)) throw Error('Invalid search query');
-  const maxEntries = limits.entries ?? 10000, maxFiles = limits.files ?? 2000;
+  const maxEntries = limits.entries ?? 20000, maxFiles = limits.files ?? 10000;
   const maxBytes = limits.bytes ?? 64 * 1024 * 1024, maxResults = limits.results ?? 200;
   const root = workspaces.describe(id).root;
   const needle = query.toLowerCase();
   const result = { items: [], entries: 0, files: 0, bytes: 0, skipped: 0, truncated: false, canceled: false };
   const directories = [{ source: root, depth: 0 }];
   const check = () => { if (signal.aborted) throw Error('SEARCH_CANCELED'); workspaces.describe(id); };
+  let lastProgress = -Infinity;
+  const report = () => {
+    const now = performance.now();
+    if (now - lastProgress < 100 || signal.aborted) return;
+    lastProgress = now;
+    onProgress({ entries: result.entries, files: result.files, matches: result.items.length });
+  };
   try {
     while (directories.length) {
       check();
       const directory = directories.pop();
       let handle;
       try { handle = await fs.opendir(await within(root, directory.source)); }
-      catch (error) { if (directory.source === root) throw error; result.skipped++; continue; }
+      catch (error) { if (directory.source === root || signal.aborted) throw error; result.skipped++; continue; }
       try {
+        check();
         for await (const entry of handle) {
-          await new Promise(resolve => setImmediate(resolve)); check();
+          // Yield periodically even when most entries need no file I/O.
+          if (result.entries % 32 === 0) { await new Promise(resolve => setImmediate(resolve)); check(); report(); }
+          check();
           if (result.entries >= maxEntries) { result.truncated = true; break; }
           result.entries++;
           if (entry.isSymbolicLink()) { result.skipped++; continue; }
@@ -35,15 +45,15 @@ async function searchWorkspace(workspaces, id, query, mode, signal, limits = {})
           if (result.files >= maxFiles) { result.truncated = true; break; }
           result.files++;
           try {
-            const canonical = await within(root, source); check();
             const add = async (line, snippet) => {
-              const entryId = await workspaces.registerFile(id, canonical);
+              const entryId = await workspaces.registerFile(id, source);
               check();
               result.items.push({ entryId, name: path.relative(root, source), line, snippet });
             };
             if (mode === 'filename') {
               if (entry.name.toLowerCase().includes(needle)) await add(1, '');
             } else {
+              const canonical = await within(root, source); check();
               const stat = await fs.stat(canonical);
               if (stat.size > 10 * 1024 * 1024) { result.skipped++; continue; }
               if (result.bytes + stat.size > maxBytes) { result.truncated = true; break; }

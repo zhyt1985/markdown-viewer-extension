@@ -1,11 +1,10 @@
-import { openFile, openWorkspace, exportFile, cancelExport, openSettings, closeDialogs, selectNav, documentMenu } from './ui-helpers.js';
+import { launchDesktop, openFile, openWorkspace, exportFile, cancelExport, openSettings, closeDialogs, selectNav, documentMenu } from './ui-helpers.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { _electron } from 'playwright-core';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const require = createRequire(new URL('../package.json', import.meta.url));
@@ -29,7 +28,7 @@ test('real workspace tree, tabs, reading state and export remain correctly scope
   await fs.writeFile(path.join(folder, '图片', 'local.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="60"><rect width="100" height="60" fill="blue"/></svg>');
   await fs.writeFile(path.join(folder, 'unsupported.bin'), Buffer.from([0, 1, 2]));
   const packaged = process.env.MV_DESKTOP_EXECUTABLE;
-  const app = await _electron.launch({ executablePath: packaged || require('electron'),
+  const app = await launchDesktop({ executablePath: packaged || require('electron'),
     args: [`--user-data-dir=${path.join(temporary, 'profile')}`, ...(packaged ? [] : [path.join(root, 'dist/desktop/app')])],
     env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined }, timeout: 60000 });
   try {

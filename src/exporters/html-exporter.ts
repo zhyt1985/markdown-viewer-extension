@@ -2,6 +2,7 @@ import type { DocumentService } from '../types/platform';
 import { ResourceEmbedder } from './resource-embedder';
 import { collectContentCss } from './export-styles';
 import { READING_MAX_WIDTH_PX } from '../ui/layout-presets';
+import { sanitizeHtmlTree } from '../utils/html-sanitizer';
 
 export interface HtmlExportOptions {
   container: HTMLElement;
@@ -9,6 +10,7 @@ export interface HtmlExportOptions {
   title?: string;
   documentService?: DocumentService;
   includeKatexCdn?: boolean;
+  offline?: { embedImage: (source: string) => Promise<string> };
   onProgress?: (completed: number, total: number) => void;
 }
 
@@ -20,6 +22,7 @@ export interface HtmlExportResult {
 }
 
 const KATEX_CDN_URL = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css';
+const OFFLINE_POLICY = "default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
 
 const EXPORT_LAYOUT_CSS = `
 html, body {
@@ -127,6 +130,42 @@ async function inlineImages(
   await Promise.all(tasks);
 }
 
+const imageData = /^data:image\/(?:png|jpeg|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon|svg\+xml)(?:;[^,]*)?,/i;
+const cssUrl = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)/gi;
+
+function removeExternalCssUrls(css: string): string {
+  return css.replace(cssUrl, (value, double, single, unquoted) => {
+    const target = (double ?? single ?? unquoted).trim();
+    return /^(?:data:|#)/i.test(target) ? value : 'url("data:,")';
+  });
+}
+
+async function prepareOfflineContent(root: HTMLElement, embedImage: (source: string) => Promise<string>, onItemDone: () => void) {
+  const embedded = new Map<string, string>();
+  for (const image of root.querySelectorAll<HTMLImageElement>('img')) {
+    image.removeAttribute('srcset');
+    const src = image.getAttribute('src') || '';
+    let data = src;
+    try {
+      if (!imageData.test(data)) {
+        data = embedded.get(src) || await embedImage(src);
+        if (!imageData.test(data)) throw Error('Expected an embedded image');
+        embedded.set(src, data);
+      }
+      image.setAttribute('src', data);
+    } catch {
+      const line = image.getAttribute('data-source-line');
+      throw Error(`Image could not be embedded${line ? ` (line ${line})` : ''}: ${image.alt || src.slice(0, 120)}`);
+    }
+    onItemDone();
+  }
+  sanitizeHtmlTree(root);
+  root.querySelectorAll('style, .desktop-diagram-open, #mv-source-view, #editor-pane').forEach(element => element.remove());
+  for (const element of root.querySelectorAll('[style]')) {
+    element.setAttribute('style', removeExternalCssUrls(element.getAttribute('style')!));
+  }
+}
+
 export async function exportToHtml(options: HtmlExportOptions): Promise<HtmlExportResult> {
   const {
     container,
@@ -134,6 +173,7 @@ export async function exportToHtml(options: HtmlExportOptions): Promise<HtmlExpo
     title = document.title || filename || 'Markdown Viewer',
     documentService,
     includeKatexCdn = true,
+    offline,
     onProgress,
   } = options;
 
@@ -169,13 +209,13 @@ export async function exportToHtml(options: HtmlExportOptions): Promise<HtmlExpo
     }
     reportStep();
 
-    const embedder = new ResourceEmbedder({ documentService });
-    await inlineImages(clonedContainer, embedder, reportStep);
+    if (offline) await prepareOfflineContent(clonedContainer, offline.embedImage, reportStep);
+    else await inlineImages(clonedContainer, new ResourceEmbedder({ documentService }), reportStep);
     reportStep();
 
-    const styles = collectContentCss();
+    const styles = offline ? removeExternalCssUrls(collectContentCss(true)).replace(/<\/style/gi, '<\\/style') : collectContentCss();
     reportStep();
-    const katexLink = includeKatexCdn
+    const katexLink = includeKatexCdn && !offline
       ? `<link rel="stylesheet" href="${KATEX_CDN_URL}">`
       : '';
 
@@ -183,6 +223,7 @@ export async function exportToHtml(options: HtmlExportOptions): Promise<HtmlExpo
 <html lang="${document.documentElement.lang || 'en'}">
 <head>
   <meta charset="UTF-8">
+  ${offline ? `<meta http-equiv="Content-Security-Policy" content="${OFFLINE_POLICY}">` : ''}
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtmlText(title)}</title>
   ${katexLink}

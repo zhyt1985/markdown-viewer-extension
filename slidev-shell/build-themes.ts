@@ -103,7 +103,7 @@ const themes = [
   'dracula', 'purplin', 'academic', 'geist', 'unicorn',
 ]
 
-const outDir = resolve('../dist/themes')
+const outDir = process.env.DOCUMD_SLIDEV_THEME_DIR || resolve('../dist/themes')
 
 async function buildTheme(themeName: string): Promise<void> {
   const entry = resolve(`./themes/${themeName}.ts`)
@@ -242,7 +242,7 @@ async function main() {
     JSON.stringify(manifest, null, 2),
   )
 
-  console.log(`\n✅ ${Object.keys(manifest).length} theme bundles built → dist/themes/`)
+  console.log(`\n✅ ${Object.keys(manifest).length} theme bundles built → ${outDir}`)
 }
 
 main().catch((err) => {

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { migrateProfile } from '../src/profile-migration.cjs';
 
 test('formal profile imports only application state and never replaces new state or edits the legacy profile', async () => {
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(),'documd-profile-'));
+  const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'documd-profile-')));
   try {
     const old = path.join(temporary,'old'), target = path.join(temporary,'new'); await fs.mkdir(old);
     const state = JSON.stringify({ schemaVersion:1, values:{ markdownViewerSettings:{ preferredLocale:'zh_CN' }, 'reading:abc':{ scrollTop:123 }, desktopSession:{ version:1, workspaces:[], documents:[], activeSource:null } } });
@@ -22,7 +22,7 @@ test('formal profile imports only application state and never replaces new state
   } finally { await fs.rm(temporary,{recursive:true,force:true}); }
 });
 test('damaged and linked legacy data remains untouched and missing legacy data is harmless', async () => {
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(),'documd-profile-invalid-'));
+  const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'documd-profile-invalid-')));
   try {
     const old = path.join(temporary,'old'); await fs.mkdir(old); await fs.writeFile(path.join(old,'desktop-state.json'),'{broken');
     assert.equal((await migrateProfile(path.join(temporary,'new'),[old])).status,'warning');

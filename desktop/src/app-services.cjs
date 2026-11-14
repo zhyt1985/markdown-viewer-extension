@@ -22,7 +22,9 @@ function createAppServices(stateStore, cache, isDocumentAllowed, onChange = () =
       if (!payload.items || typeof payload.items !== 'object' || Array.isArray(payload.items)) throw Error('Invalid storage items');
       validateKeys(Object.keys(payload.items));
       if (Object.hasOwn(payload.items, 'markdownViewerSettings')) validateSettings(payload.items.markdownViewerSettings);
-      await stateStore.update('set', payload.items); onChange({ type: 'SETTINGS_CHANGED' }); return {};
+      await stateStore.update('set', payload.items);
+      if (Object.hasOwn(payload.items, 'markdownViewerSettings')) onChange({ type: 'SETTINGS_CHANGED' }, payload.items.markdownViewerSettings);
+      return {};
     }
     if (type === 'STORAGE_REMOVE') { await stateStore.update('remove', validateKeys(payload.keys)); onChange({ type: 'SETTINGS_CHANGED' }); return {}; }
     if (type === 'FILE_STATE_OPERATION') {
@@ -38,6 +40,7 @@ function createAppServices(stateStore, cache, isDocumentAllowed, onChange = () =
           if (!Number.isFinite(value) || value < numeric[name][0] || value > numeric[name][1]) throw Error('Invalid reading value');
         } else if (name === 'tocVisible') { if (typeof value !== 'boolean') throw Error('Invalid reading value'); }
         else if (name === 'layoutMode') { if (!['normal', 'fullscreen', 'narrow'].includes(value)) throw Error('Invalid reading value'); }
+        else if (name === 'documentMode') { if (!['reading', 'split', 'source'].includes(value)) throw Error('Invalid reading value'); }
         else throw Error('Unsupported reading field');
       }
       await stateStore.mutate(values => { values[key] = { ...(values[key] || {}), ...state }; });

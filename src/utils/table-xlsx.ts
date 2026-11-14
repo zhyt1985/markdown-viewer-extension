@@ -131,10 +131,11 @@ function emptyCell(): TableCell {
  * rowspan/colspan become blank entries; the visible text stays only at the
  * span origin.
  */
-export function flattenTableCells(rowCells: TableSpanCell[][]): TableData {
+export function flattenTableCells(rowCells: TableSpanCell[][], maxCells = Infinity): TableData {
   const rows: TableCell[][] = [];
   const merges: MergeRange[] = [];
   const rowCount = rowCells.length;
+  const maxColumns = rowCount ? Math.floor(maxCells / rowCount) : Infinity;
   // How many more rows (including the current one) each column is still
   // covered by a span that started above.
   let remaining: number[] = [];
@@ -160,6 +161,7 @@ export function flattenTableCells(rowCells: TableSpanCell[][]): TableData {
       // Never span past the physical table.
       const rs = Math.min(rowspan, Math.max(rowCount - y, 1));
       const cs = colspan;
+      if (col + cs > maxColumns) throw new RangeError('Table exceeds the cell limit');
 
       const text = normalizeCellText(cell.text);
       denseRow[col] = text

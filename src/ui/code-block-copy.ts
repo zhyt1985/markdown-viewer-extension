@@ -1,6 +1,7 @@
 export interface CodeBlockCopyOptions {
   container: HTMLElement;
   translate?: (key: string) => string;
+  copyText?: (text: string) => Promise<void>;
 }
 
 type CopyState = 'idle' | 'success' | 'error';
@@ -33,16 +34,15 @@ export function shouldBlurCopyButtonOnMouseLeave(
 }
 
 export function setupCodeBlockCopy(options: CodeBlockCopyOptions): () => void {
-  const { container, translate } = options;
+  const { container, translate, copyText = writeTextToClipboard } = options;
 
   const t = (key: string, fallback: string) => {
     const value = translate?.(key);
     return value && value !== key ? value : fallback;
   };
 
-  const copyLabel = t('code_copy', 'Copy code');
-  const copiedLabel = t('code_copied', 'Copied');
-  const failedLabel = t('code_copy_failed', 'Copy failed');
+  const labelForState = (state: CopyState) => state === 'success' ? t('code_copied', 'Copied')
+    : state === 'error' ? t('code_copy_failed', 'Copy failed') : t('code_copy', 'Copy code');
 
   const enhancePre = (pre: HTMLElement) => {
     if (!isCopyableCodeBlock(pre) || pre.querySelector(`.${BUTTON_CLASS}`)) {
@@ -55,7 +55,8 @@ export function setupCodeBlockCopy(options: CodeBlockCopyOptions): () => void {
     button.type = 'button';
     button.className = BUTTON_CLASS;
 
-    const setState = (state: CopyState, label: string) => {
+    const setState = (state: CopyState) => {
+      const label = labelForState(state);
       button.dataset.copyState = state;
       button.title = label;
       button.setAttribute('aria-label', label);
@@ -70,7 +71,7 @@ export function setupCodeBlockCopy(options: CodeBlockCopyOptions): () => void {
 
       const nextTimer = window.setTimeout(() => {
         resetTimers.delete(button);
-        setState('idle', copyLabel);
+        setState('idle');
       }, RESET_DELAY_MS);
 
       resetTimers.set(button, nextTimer);
@@ -81,10 +82,10 @@ export function setupCodeBlockCopy(options: CodeBlockCopyOptions): () => void {
       event.stopPropagation();
 
       try {
-        await writeTextToClipboard(getCopyableCodeText(pre));
-        setState('success', copiedLabel);
+        await copyText(getCopyableCodeText(pre));
+        setState('success');
       } catch {
-        setState('error', failedLabel);
+        setState('error');
       }
 
       scheduleReset();
@@ -96,7 +97,7 @@ export function setupCodeBlockCopy(options: CodeBlockCopyOptions): () => void {
       }
     });
 
-    setState('idle', copyLabel);
+    setState('idle');
     pre.appendChild(button);
   };
 

@@ -14,8 +14,8 @@ import { createVClickDirectives } from '@slidev/client/modules/v-click'
 import '#slidev/styles'
 import 'uno.css'
 
-export async function bootstrapList() {
-  const app = createApp(ListApp)
+export async function bootstrapList(print = false) {
+  const app = createApp(ListApp, { print })
   app.use(createVClickDirectives())
   app.mount('#app')
 }

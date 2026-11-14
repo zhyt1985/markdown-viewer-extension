@@ -99,6 +99,9 @@ export type RenderMarkdownOptions = {
 
   /** Table layout: 'left', 'center', or 'center-full-width' */
   tableLayout?: TableLayout;
+
+  /** Whether the host supports rewriting Obsidian wiki links and embeds. */
+  rewriteObsidianSyntax?: boolean;
 };
 
 // Global document instance for incremental updates
@@ -177,10 +180,11 @@ export async function renderMarkdownDocument(options: RenderMarkdownOptions): Pr
     frontmatterDisplay = 'hide',
     tableMergeEmpty = false,
     tableLayout = 'center',
+    rewriteObsidianSyntax = true,
   } = options;
 
   const taskManager = providedTaskManager ?? new AsyncTaskManager(translate);
-  const normalizedMarkdown = rewriteObsidianLinks(markdown);
+  const normalizedMarkdown = rewriteObsidianSyntax ? rewriteObsidianLinks(markdown) : markdown;
   const footnotes = parseFootnotes(normalizedMarkdown);
   const renderMarkdown = footnotes.bodyMarkdown;
 

@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 // No raw IPC, arbitrary path reads, shell access, or caller-supplied output paths.
 contextBridge.exposeInMainWorld('desktop', {
   open: () => ipcRenderer.invoke('desktop:open'),
+  encodings: () => ipcRenderer.invoke('desktop:encodings'),
+  openWithEncoding: encoding => ipcRenderer.invoke('desktop:open', encoding),
   newDocument: () => ipcRenderer.invoke('desktop:new'),
   session: () => ipcRenderer.invoke('desktop:session'),
   pendingOpens: () => ipcRenderer.invoke('desktop:pending-opens'),
@@ -19,13 +21,35 @@ contextBridge.exposeInMainWorld('desktop', {
     return ()=>ipcRenderer.removeListener('desktop:external-open',listener);
   },
   appInfo: () => ipcRenderer.invoke('desktop:app-info'),
+  htmlPreview: (operation, payload) => ipcRenderer.invoke('desktop:html-preview', operation, payload),
+  htmlImport: (operation, payload) => ipcRenderer.invoke('desktop:html-import', operation, payload),
+  resourceFolders: payload => ipcRenderer.invoke('desktop:resource-folders', payload),
+  onHtmlPreviewFailure: handler => {
+    const listener = (_event, document) => handler(document);
+    ipcRenderer.on('desktop:html-preview-failed', listener);
+    return () => ipcRenderer.removeListener('desktop:html-preview-failed', listener);
+  },
+  fullscreen: operation => ipcRenderer.invoke('desktop:fullscreen', operation),
+  onFullscreen: handler => {
+    const listener = (_event, active) => handler(active);
+    ipcRenderer.on('desktop:fullscreen-changed', listener);
+    return () => ipcRenderer.removeListener('desktop:fullscreen-changed', listener);
+  },
   preferences: (operation, payload) => ipcRenderer.invoke('desktop:preferences', operation, payload),
+  annotations: (operation, payload) => ipcRenderer.invoke('desktop:annotations', operation, payload),
   cancelPreview: () => ipcRenderer.invoke('desktop:cancel-preview'),
   recent: () => ipcRenderer.invoke('desktop:recent-list'),
+  recentWorkspaces: () => ipcRenderer.invoke('desktop:recent-workspaces'),
+  openRecentWorkspace: id => ipcRenderer.invoke('desktop:recent-workspace-open', id),
   clearRecent: () => ipcRenderer.invoke('desktop:recent-clear'),
   openRecent: id => ipcRenderer.invoke('desktop:recent-open', id),
   search: payload => ipcRenderer.invoke('desktop:search', payload),
   cancelSearch: id => ipcRenderer.invoke('desktop:search-cancel', id),
+  onSearchProgress: handler => {
+    const listener = (_event, progress) => handler(progress);
+    ipcRenderer.on('desktop:search-progress', listener);
+    return () => ipcRenderer.removeListener('desktop:search-progress', listener);
+  },
   activate: id => ipcRenderer.invoke('desktop:activate', id),
   openLocalLink: payload => ipcRenderer.invoke('desktop:local-link',payload),
   summaryIndex: payload => ipcRenderer.invoke('desktop:summary-index',payload),
@@ -41,9 +65,14 @@ contextBridge.exposeInMainWorld('desktop', {
   },
   openWorkspace: () => ipcRenderer.invoke('desktop:workspace-open'),
   listWorkspace: payload => ipcRenderer.invoke('desktop:workspace-list', payload),
+  revealWorkspaceFile: documentId => ipcRenderer.invoke('desktop:workspace-reveal', documentId),
   openWorkspaceFile: payload => ipcRenderer.invoke('desktop:workspace-file', payload),
   closeWorkspace: id => ipcRenderer.invoke('desktop:workspace-close', id),
   exportDocument: payload => ipcRenderer.invoke('desktop:export', payload),
+  cancelPdfPreview: requestId => ipcRenderer.invoke('desktop:cancel-pdf-preview', requestId),
+  imageAction: payload => ipcRenderer.invoke('desktop:image-action', payload),
+  copyCode: payload => ipcRenderer.invoke('desktop:copy-code', payload),
+  tableAction: payload => ipcRenderer.invoke('desktop:table-action', payload),
   cancelExport: () => ipcRenderer.invoke('desktop:cancel-export'),
   render: payload => ipcRenderer.invoke('desktop:render', payload),
   state: (operation, payload) => ipcRenderer.invoke('desktop:state', { operation, payload }),
