@@ -94,6 +94,7 @@ let exportTask = null;
 let pdfPreview = null;
 const PDF_PREVIEW_MAX_BYTES = 32 * 1024 * 1024;
 let diagramWorker;
+let previewRevision = 0;
 let navigation;
 let searchJob;
 let monitor;
@@ -622,7 +623,9 @@ if(ownsInstance)app.whenReady().then(async () => {
     throw Error('Unsupported annotation operation');
   });
   ipcMain.handle('desktop:cancel-preview', event => {
-    assertSender(event); diagramWorker.cancelOwner(window.webContents.id, 'Preview superseded');
+    assertSender(event);
+    previewRevision++;
+    diagramWorker.cancelOwner(window.webContents.id, 'Preview superseded');
   });
 
   ipcMain.handle('desktop:render', async (event, payload) => {
@@ -646,8 +649,9 @@ if(ownsInstance)app.whenReady().then(async () => {
       && !/(?:https?:|file:|documd:|data:|href|src|url\(|image)/i.test(input);
     const key = createHash('sha256').update(JSON.stringify([renderType, input, themeConfig, documentVersion])).digest('hex');
     const task = isExport ? exportTask : null;
+    const revision = previewRevision;
     const isCurrent = () => isExport ? exportTask === task && !task.canceled && !task.worker.isDestroyed()
-      : current?.documentVersion === documentVersion && current?.documentId === documentId;
+      : previewRevision === revision && current?.documentVersion === documentVersion && current?.documentId === documentId;
     const cacheGeneration = diskCache.generation;
     const cached = cacheable ? await diskCache.get(key).catch(() => null) : null;
     if (!isCurrent()) throw new Error('Stale document render');

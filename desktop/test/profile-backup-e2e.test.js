@@ -62,7 +62,10 @@ async function rehearsal(t, firstExecutable, crossVersion) {
       dialog.showMessageBox = async () => ({ response: 1 });
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: paths });
     }, [annotated, named]);
-    return page.evaluate(() => window.desktop.appInfo());
+    const info = await page.evaluate(() => window.desktop.appInfo());
+    const archive = executable && await app.evaluate(({ app }) => app.getAppPath());
+    return { ...info, buildSha256: archive
+      ? createHash('sha256').update(await fs.readFile(archive)).digest('hex') : null };
   }
 
   async function stop() {
@@ -178,7 +181,10 @@ async function rehearsal(t, firstExecutable, crossVersion) {
     if (crossVersion) {
       assert.equal(installed.appId, baseline.appId);
       const alpha = version => Number(/^0\.1\.0-alpha\.(\d+)$/.exec(version)?.[1]);
-      assert.ok(alpha(installed.version) > alpha(baseline.version), `${baseline.version} → ${installed.version}`);
+      const newerVersion = alpha(installed.version) > alpha(baseline.version);
+      const revisedBuild = installed.version === baseline.version && baseline.buildSha256
+        && installed.buildSha256 && installed.buildSha256 !== baseline.buildSha256;
+      assert.ok(newerVersion || revisedBuild, `Expected a newer version or a different build: ${baseline.version} → ${installed.version}`);
     } else assert.equal(installed.version, baseline.version);
     await checkRestored();
 
@@ -196,12 +202,14 @@ async function rehearsal(t, firstExecutable, crossVersion) {
       await copy(backup, rollback);
       const rolledBack = await start(rollback, firstExecutable);
       assert.equal(rolledBack.version, baseline.version);
+      assert.equal(rolledBack.buildSha256, baseline.buildSha256);
       await checkRestored();
       await stop();
       assert.deepEqual(await profileHashes(backup), unchanged);
     }
     await sourceIntegrity();
     t.diagnostic(`${baseline.version} → ${installed.version}${crossVersion ? ' → ' + baseline.version : ''}`);
+    if (crossVersion) t.diagnostic(`application archives: ${baseline.buildSha256} → ${installed.buildSha256} → ${baseline.buildSha256}`);
     t.diagnostic(`isolated profile and source copies: ${folder}`);
   } finally { if (app) await app.close(); }
 }

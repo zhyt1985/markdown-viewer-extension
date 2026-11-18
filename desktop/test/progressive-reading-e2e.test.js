@@ -96,5 +96,50 @@ test('opening a Markdown document preserves the reader scroll and permits switch
       await ready(slowSwitch);
       assert.equal(await page.locator('#markdown-content .diagram-block img').count(), 1);
     });
+
+    await t.test('canceling during a cache lookup cannot start a late diagram render', async () => {
+      await app.evaluate(({ app }) => {
+        const fs = process.getBuiltinModule('node:fs/promises');
+        const path = process.getBuiltinModule('node:path');
+        const original = fs.readdir;
+        const directory = path.join(app.getPath('userData'), 'cache/render');
+        globalThis.__cacheLookupHeld = false;
+        fs.readdir = async function (folder, ...args) {
+          const result = await original.call(this, folder, ...args);
+          if (folder === directory) {
+            fs.readdir = original;
+            await new Promise(resolve => {
+              globalThis.__cacheLookupHeld = true;
+              globalThis.__releaseCacheLookup = resolve;
+            });
+          }
+          return result;
+        };
+      });
+      try {
+        await page.evaluate(() => {
+          const selected = window.desktopApp.state().document;
+          window.__cacheRenderPayload = { renderType: 'mermaid', input: 'flowchart LR\nA --> CacheCancellation',
+            documentId: selected.documentId, documentVersion: selected.documentVersion };
+          window.__cacheRenderResult = window.desktop.render(window.__cacheRenderPayload)
+            .then(() => ({ rendered: true }), error => ({ error: String(error) }));
+        });
+        await assert.doesNotReject(async () => {
+          for (let i = 0; i < 100; i++) {
+            if (await app.evaluate(() => globalThis.__cacheLookupHeld)) return;
+            await new Promise(resolve => setTimeout(resolve, 20));
+          }
+          throw Error('Cache lookup was not reached');
+        });
+        await page.evaluate(() => window.desktop.cancelPreview());
+        await app.evaluate(() => globalThis.__releaseCacheLookup());
+        const result = await page.evaluate(() => window.__cacheRenderResult);
+        assert.match(result.error || '', /Stale document render/);
+        const next = await page.evaluate(() => window.desktop.render(window.__cacheRenderPayload));
+        assert.ok(next && next.success !== false && !next.error);
+      } finally {
+        await app.evaluate(() => globalThis.__releaseCacheLookup?.());
+      }
+    });
   } finally { await app.close(); }
 });
