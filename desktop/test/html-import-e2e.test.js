@@ -116,9 +116,9 @@ test('local HTML and clipboard HTML become portable Markdown drafts', { timeout:
     });
 
     await t.test('clipboard conversion keeps embedded images and rejects a plain-text clipboard', async () => {
-      const clipboard = (html, text) => app.evaluate(({ clipboard }, { html, text }) => {
-        clipboard.readHTML = () => html;
-        clipboard.readText = () => text;
+      const clipboard = (html, text) => app.evaluate(({ clipboard, ClipboardItem }, { html, text }) => {
+        clipboard.read = async () => [new ClipboardItem(html ? { 'text/html': html, 'text/plain': text } : { 'text/plain': text })];
+        clipboard.readText = async () => text;
       }, { html, text });
       const paste = () => fileAction('#paste-html');
       await clipboard('', '普通文本');

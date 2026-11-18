@@ -1,6 +1,6 @@
 # Windows x64 源码同步、便携包与回归手册
 
-当前候选为 **`0.1.0-alpha.39`**，锁定 Electron **45.2.2**。本轮按用户安排未复测 Windows。此前 [Alpha 17 Windows x64 的 150/150](BUILD.zh-CN.md#2026-11-11-alpha-17-界面语言) 是历史证据。当前进度、验收缺口及 macOS 证据见 [P6 交付检查](P6_DELIVERY.zh-CN.md)和[功能覆盖核对](P6_COVERAGE_AUDIT.zh-CN.md)。
+当前候选为 **`0.1.0-alpha.39`**，锁定 Electron **45.2.2**。2026-11-17 至 18 已在本机完成 Windows 打包、227/227 回归、真实剪贴板修复复验及拼音组字检查，用户手动确认「打开方式 → 仅一次」及重复打开全部通过，详见 [Windows 本机验收记录](WINDOWS_X64_ACCEPTANCE.zh-CN.md)。干净目标机断网仍待验证。此前 [Alpha 17 Windows x64 的 150/150](BUILD.zh-CN.md#2026-11-11-alpha-17-界面语言) 为历史证据。完整交付条件见 [P6 交付检查](P6_DELIVERY.zh-CN.md)。
 
 ## 1. 从 Mac 同步源码
 

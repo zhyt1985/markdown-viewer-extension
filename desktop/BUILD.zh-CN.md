@@ -467,3 +467,9 @@ macOS arm64 打包全量回归 **227/227 通过**，无失败、取消或跳过�
 交接包为 `documd-0.1.0-alpha.39-macos-arm64.zip`，大小 **131,080,778 字节**。仅对交接副本补做临时签名，应用归档 `app.asar` 与原构建逐字节一致。ZIP 校验、独立解压、框架链接与严格签名检查均通过。
 
 直接测试 ZIP 解压后的应用：全量 **227/227**、隔离配置恢复与跨版本回退 **2/2**。日志：`test-results/desktop/alpha39-macos-candidate.log` 和 `alpha39-macos-candidate-rollback.log`。使用步骤与签名边界见 [macOS arm64 候选包说明](MACOS_ARM64_CANDIDATE.zh-CN.md)。此包供本地试用，未公证；Windows 打包及实机验收按用户安排跳过。
+
+### 2026-11-17 至 18 Windows x64 本机验收与剪贴板修复
+
+Windows 11 家庭版中文版、构建 26200.9974，使用校验过的官方 Electron 45.2.2 ZIP 构建便携包。首次真机操作发现 Electron 45 剪贴板 API 变化导致表格复制未写入、图片复制失败、HTML 粘贴导入失败。修订为 ClipboardItem 异步读写，并等待复制操作完成。修订包独立解压后，73 个文件校验一致，全量回归 **227/227**、真实系统剪贴板专项 **1/1** 通过。
+
+Word 实际粘贴 PNG、Excel 实际粘贴表格及 Alpha 13 共有数据升级/回退补验通过。拼音 `zhongwen` 选择「中文」后，源码和实时预览一致；`ceshi` 取消组字后正文完整，保存结果逐行核对通过。200% 缩放下代表操作正常。Excel 默认粘贴将 `007` 显示为 `7`，公式样文本的防执行单引号可见。完整证据、便携 ZIP 及剩余目标机条件见 [Windows 本机验收记录](WINDOWS_X64_ACCEPTANCE.zh-CN.md)。

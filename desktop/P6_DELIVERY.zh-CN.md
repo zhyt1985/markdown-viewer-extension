@@ -4,14 +4,14 @@
 
 | 检查项 | 已有证据 | 仍需完成 |
 | --- | --- | --- |
-| 功能覆盖与回归 | [已逐项核对](P6_COVERAGE_AUDIT.zh-CN.md) 25 项保留功能、7 项完整排除及 2 项部分排除；Alpha 39 macOS 候选 ZIP 解压后全量回归 227/227；Alpha 38 Chrome 受影响用例 12/12 | Windows 正式交付时按最终候选版本复跑 |
-| Office 和 PDF | [Alpha 39 macOS 补验](BUILD.zh-CN.md#2026-11-14-alpha-39-office-与-pdf-补验)：Word 公式与表格、Excel/WPS 合并表、预览长表与时序图 PDF 均已打开检查 | Windows 常用 Office/PDF 阅读器及剪贴板待验；Word 公式交互编辑未实测，Markdown 脚注目前输出为文末列表 |
-| 包体与离线 | Alpha 39 [macOS arm64 候选 ZIP](MACOS_ARM64_CANDIDATE.zh-CN.md)和源码包已归档；macOS ZIP 解压后严格验签通过 | Windows 便携 ZIP 和干净目标机断网验收按用户安排跳过；macOS 跨机首次启动未验 |
-| 恢复、备份与回退 | macOS arm64 的 [Alpha 39 同版本恢复和 Alpha 17 → Alpha 39 → Alpha 17](MACOS_ARM64_CANDIDATE.zh-CN.md)均通过；草稿、批注、设置、会话和源文件已核对 | Windows 候选包回退暂缓 |
+| 功能覆盖与回归 | [已逐项核对](P6_COVERAGE_AUDIT.zh-CN.md) 25 项保留功能、7 项完整排除及 2 项部分排除；Alpha 39 macOS 全量 227/227；Windows 剪贴板修订包全量 227/227、系统剪贴板专项 1/1；Alpha 38 Chrome 受影响用例 12/12 | 后续代码变更按受影响范围复验 |
+| Office 和 PDF | [Alpha 39 macOS 补验](BUILD.zh-CN.md#2026-11-14-alpha-39-office-与-pdf-补验)已检查代表产物；Windows Word/Excel 文件读取、真实表格和图片粘贴及 7 页 PDF 预览/保存核对通过 | Windows WPS 内容与 PDF 视觉复核、Word 公式交互编辑未完成；Markdown 脚注目前输出为文末列表 |
+| 包体与离线 | Alpha 39 [macOS arm64 候选 ZIP](MACOS_ARM64_CANDIDATE.zh-CN.md)和源码包已归档；macOS ZIP 解压后严格验签通过；Windows 修订便携 ZIP 及逐文件校验完成 | 干净 Windows 目标机断网验收；macOS 跨机首次启动 |
+| 恢复、备份与回退 | macOS 同版本恢复及 Alpha 17 回退通过；Windows Alpha 39 同版本恢复通过，Alpha 13 → Alpha 39 → Alpha 13 的共有草稿/会话/设置/源文件补验通过 | Windows 跨版本批注未验证 |
 | 性能与资源回收 | macOS 已有[启动与取消基线](#alpha-31-性能基线)、[长文及循环资源回收](#长文渐进渲染与循环资源回收)和 [10,000 文件工作区采样](#10000-文件工作区) | Windows 候选包另测 |
-| 本地试用与系统集成 | Alpha 37 macOS 打包应用[仓库样本试跑](P6_CANDIDATE_TRIAL.zh-CN.md)打开 10/10、导出 8/8；Alpha 39 [复测公开文档](P6_PUBLIC_DOCUMENT_TRIAL.zh-CN.md#alpha-39-复测)确认 Mermaid 内置图标和离线导出 | 验证系统对话框、文件关联、输入法和高 DPI |
+| 本地试用与系统集成 | Alpha 37 macOS [仓库样本试跑](P6_CANDIDATE_TRIAL.zh-CN.md)打开 10/10、导出 8/8；Alpha 39 [复测公开文档](P6_PUBLIC_DOCUMENT_TRIAL.zh-CN.md#alpha-39-复测)通过；Windows 原生对话框、拼音候选确认/取消及 200% 缩放下代表操作通过；用户手动确认「打开方式 → 仅一次」、重复打开和原默认应用保留通过 | 其他显示器/DPI 组合 |
 
-本轮按用户安排跳过 Windows x64 打包及实机验收，交接范围为 macOS arm64 本地试用候选包。Windows 正式交付条件保留，旧版 Windows 结果不计入当前版本。
+2026-11-17 至 18 按用户要求恢复 Windows x64 打包和本机验收，当前证据和修订包见 [Windows 本机验收记录](WINDOWS_X64_ACCEPTANCE.zh-CN.md)。完整目标机交付条件继续按上表记录。
 
 ## 包体记录
 
@@ -144,6 +144,6 @@ node desktop/test/workspace-search-baseline.js
 - [候选包试跑报告](P6_CANDIDATE_TRIAL.zh-CN.md)和[真实文档试用表](P6_DOCUMENT_TRIAL.zh-CN.md)均随源码包交接。
 - [公开文档试用报告](P6_PUBLIC_DOCUMENT_TRIAL.zh-CN.md)包含来源、实测结果及兼容问题。
 - 在仓库运行 `node desktop/scripts/package-source.js`，在 `dist/desktop/handoff` 生成 `documd-0.1.0-alpha.39-source.tar.gz`、`.sha256` 和 `documd-0.1.0-alpha.39-source.json`。
-- [Windows x64 手册](WINDOWS_X64_REGRESSION.zh-CN.md)包含源包校验、EXE 打包、便携 ZIP、离线回归、临时配置、文件关联和回退步骤。当前未生成 Windows EXE 或便携 ZIP。
+- [Windows x64 手册](WINDOWS_X64_REGRESSION.zh-CN.md)包含源包校验、EXE 打包、便携 ZIP、离线回归、临时配置、文件关联和回退步骤。当前 Windows 修订便携包、校验值和本机结果见 [Windows 本机验收记录](WINDOWS_X64_ACCEPTANCE.zh-CN.md)。
 
 仓库与公开文档已试跑。Alpha 38 复测了队列、SVG 转换、本地幻灯片背景和 XLSX 菜单；Alpha 39 验证了免费图标包。远程图片与未随包提供的图标仍不可用。个人文档无需提供；目标机和实际使用环境的人工验证另记。

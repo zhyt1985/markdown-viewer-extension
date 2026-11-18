@@ -43,8 +43,12 @@ test('desktop image menu saves original and native formats and copies full resol
     }, name);
     await app.evaluate(({ dialog, clipboard }) => {
       dialog.showMessageBox = async () => ({ response: 1 });
-      clipboard.writeImage = image => {
-        globalThis.__menuClipboard = { size: image.getSize(), signature: image.toPNG().subarray(0, 8).toString('hex') };
+      clipboard.write = async ([item]) => {
+        const png = Buffer.from(await (await item.getType('image/png')).arrayBuffer());
+        globalThis.__menuClipboard = {
+          size: { width: png.readUInt32BE(16), height: png.readUInt32BE(20) },
+          signature: png.subarray(0, 8).toString('hex'),
+        };
       };
       dialog.showSaveDialog = async (_window, options) => {
         globalThis.__menuSaveOptions = options;

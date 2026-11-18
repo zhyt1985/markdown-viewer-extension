@@ -51,7 +51,12 @@ test('desktop table menu copies HTML and TSV and exports a styled XLSX with real
       return state && !state.busy && (name === null ? !state.document : state.document?.filename === name && state.preview.current);
     }, name);
     await app.evaluate(({ clipboard, dialog }) => {
-      clipboard.write = value => { globalThis.__tableClipboard = value; };
+      clipboard.write = async ([item]) => {
+        globalThis.__tableClipboard = {
+          html: await (await item.getType('text/html')).text(),
+          text: await (await item.getType('text/plain')).text(),
+        };
+      };
       dialog.showMessageBox = async () => ({ response: 1 });
       dialog.showSaveDialog = async (_window, options) => {
         globalThis.__tableSaveOptions = options;

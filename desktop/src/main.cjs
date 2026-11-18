@@ -1,4 +1,4 @@
-const { app, BrowserWindow, clipboard, dialog, ipcMain, nativeImage, protocol, session } = require('electron');
+const { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, nativeImage, protocol, session } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID, createHash } = require('node:crypto');
@@ -590,13 +590,13 @@ if(ownsInstance)app.whenReady().then(async () => {
     if (opening || checkingClose || payload.documentVersion !== selected.documentVersion) throw Error(ui("请等待当前预览更新后再操作批注"));
     if (operation === 'set') return annotations.set(id, payload.revision, payload.annotations);
     const filename = selected.untitled ? displayUntitled(selected.title) : path.basename(selected.source);
-    if (operation === 'copy') return annotations.get(id).then(({ annotations }) => {
+    if (operation === 'copy') return annotations.get(id).then(async ({ annotations }) => {
       const references = annotations.map(item => ({ ...item, startLine: item.startLine + 1, endLine: item.endLine + 1 }));
       const text = formatExportText(references, filename, {
         intro: ui("**{0}** 的批注", filename), noteLabel: ui("备注"),
         colorLabels: { yellow: ui("黄色"), green: ui("绿色"), blue: ui("蓝色"), pink: ui("粉色") },
       });
-      if (text) clipboard.writeText(text);
+      if (text) await clipboard.writeText(text);
       return Boolean(text);
     });
     if (operation === 'import') return exclusive(event, async () => {
@@ -726,7 +726,7 @@ if(ownsInstance)app.whenReady().then(async () => {
     assetSource(event, payload, { duringExport: true });
     const { text } = payload;
     if (typeof text !== 'string' || Buffer.byteLength(text) > MAX_DOCUMENT_BYTES) throw Error(ui('无法复制代码'));
-    clipboard.writeText(text);
+    return clipboard.writeText(text);
   });
   ipcMain.handle('desktop:image-action', async (event, payload) => {
     const selected = assetSource(event, payload, { includeImages: true });
@@ -749,7 +749,7 @@ if(ownsInstance)app.whenReady().then(async () => {
       }
       const image = nativeImage.createFromBuffer(bytes, { scaleFactor: 1 });
       if (image.isEmpty()) throw Error(ui('该资产无法读取'));
-      clipboard.writeImage(image);
+      await clipboard.write([new ClipboardItem({ 'image/png': new Blob([bytes], { type: 'image/png' }) })]);
       return { copied: true };
     }
     return saveAsset(selected, payload.documentVersion, payload.name, extension, bytes);
@@ -759,7 +759,7 @@ if(ownsInstance)app.whenReady().then(async () => {
     const { action, html, text, base64 } = payload;
     if (action === 'copy' && typeof html === 'string' && html.startsWith('<table ') && typeof text === 'string') {
       if (Buffer.byteLength(html) + Buffer.byteLength(text) > 12 * 1024 * 1024) throw Error(ui('表格导出超过 12 MiB'));
-      clipboard.write({ html, text });
+      await clipboard.write([new ClipboardItem({ 'text/html': html, 'text/plain': text })]);
       return { copied: true };
     }
     if (action === 'save' && typeof base64 === 'string' && base64.length <= 16 * 1024 * 1024) {
@@ -849,7 +849,13 @@ if(ownsInstance)app.whenReady().then(async () => {
       throw Error('Stale HTML conversion request');
     }
     if (operation === 'source') {
-      const html = fromFile ? selected.markdown : clipboard.readHTML() || clipboard.readText().trim();
+      let html = selected?.markdown;
+      if (!fromFile) {
+        const item = (await clipboard.read()).find(item => item.types.includes('text/html'));
+        const content = item && await item.getType('text/html');
+        if (content?.size > MAX_DOCUMENT_BYTES) throw Error('Document files must be at most 10 MiB');
+        html = (content && await content.text()) || (await clipboard.readText()).trim();
+      }
       if (!fromFile && !/<[a-z][^>]*>/i.test(html)) throw Error(ui('剪贴板中没有可转换的 HTML'));
       validateText(html);
       return html;
