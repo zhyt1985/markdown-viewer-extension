@@ -5,7 +5,7 @@
 | 检查项 | 已有证据 | 仍需完成 |
 | --- | --- | --- |
 | 功能覆盖与回归 | [已逐项核对](P6_COVERAGE_AUDIT.zh-CN.md) 25 项保留功能、7 项完整排除及 2 项部分排除；Alpha 39 macOS 全量 227/227；Windows 剪贴板修订包全量 227/227、系统剪贴板专项 1/1；Alpha 38 Chrome 受影响用例 12/12 | 后续代码变更按受影响范围复验 |
-| Office 和 PDF | [Alpha 39 macOS 补验](BUILD.zh-CN.md#2026-11-14-alpha-39-office-与-pdf-补验)已检查代表产物；Windows Word/Excel 文件读取、真实表格和图片粘贴及 7 页 PDF 预览/保存核对通过 | Windows WPS 内容与 PDF 视觉复核、Word 公式交互编辑未完成；Markdown 脚注目前输出为文末列表 |
+| Office 和 PDF | [Alpha 39 macOS 补验](BUILD.zh-CN.md#2026-11-14-alpha-39-office-与-pdf-补验)已检查代表产物；[Windows 补验](WINDOWS_X64_ACCEPTANCE.zh-CN.md#2026-11-18-实际软件补验)通过 Word 公式键盘编辑保存重开、WPS DOCX/XLSX 编辑保存重开、真实粘贴及 7 页 PDF 首尾页视觉核对 | Markdown 脚注目前输出为文末列表；Excel 默认粘贴对前导零和保护单引号的显示差异见验收记录 |
 | 包体与离线 | Alpha 39 [macOS arm64 候选 ZIP](MACOS_ARM64_CANDIDATE.zh-CN.md)和源码包已归档；macOS ZIP 解压后严格验签通过；Windows 修订便携 ZIP 及逐文件校验完成 | 干净 Windows 目标机断网验收；macOS 跨机首次启动 |
 | 恢复、备份与回退 | macOS 同版本恢复及 Alpha 17 回退通过；Windows Alpha 39 同版本恢复通过，Alpha 13 → Alpha 39 → Alpha 13 的共有草稿/会话/设置/源文件补验通过 | Windows 跨版本批注未验证 |
 | 性能与资源回收 | macOS 已有[启动与取消基线](#alpha-31-性能基线)、[长文及循环资源回收](#长文渐进渲染与循环资源回收)和 [10,000 文件工作区采样](#10000-文件工作区) | Windows 候选包另测 |
